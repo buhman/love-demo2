@@ -49,14 +49,22 @@ void * read_file(const char * filename, int * out_size)
 
 unsigned int compile(const char * vertex_source,
                      int vertex_source_size,
+                     const char * geometry_source,
+                     int geometry_source_size,
                      const char * fragment_source,
                      int fragment_source_size)
 {
   int compile_status;
   char info_log[512];
 
+  // program
+  unsigned int shader_program = glCreateProgram();
+  unsigned int vertex_shader = -1;
+  unsigned int geometry_shader = -1;
+  unsigned int fragment_shader = -1;
+
   // vertex shader
-  unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+  vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertex_shader, 1, &vertex_source, &vertex_source_size);
   glCompileShader(vertex_shader);
   glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compile_status);
@@ -64,9 +72,23 @@ unsigned int compile(const char * vertex_source,
     glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
     fprintf(stderr, "vertex shader compile: %s\n", info_log);
   }
+  glAttachShader(shader_program, vertex_shader);
+
+  // geometry shader
+  if (geometry_source_size != 0) {
+    geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
+    glShaderSource(geometry_shader, 1, &geometry_source, &geometry_source_size);
+    glCompileShader(geometry_shader);
+    glGetShaderiv(geometry_shader, GL_COMPILE_STATUS, &compile_status);
+    if (!compile_status) {
+      glGetShaderInfoLog(geometry_shader, 512, NULL, info_log);
+      fprintf(stderr, "geometry shader compile: %s\n", info_log);
+    }
+    glAttachShader(shader_program, geometry_shader);
+  }
 
   // fragment shader
-  unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+  fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fragment_shader, 1, &fragment_source, &fragment_source_size);
   glCompileShader(fragment_shader);
   glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compile_status);
@@ -74,11 +96,9 @@ unsigned int compile(const char * vertex_source,
     glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
     fprintf(stderr, "fragment shader compile: %s\n", info_log);
   }
+  glAttachShader(shader_program, fragment_shader);
 
   // link shaders
-  unsigned int shader_program = glCreateProgram();
-  glAttachShader(shader_program, vertex_shader);
-  glAttachShader(shader_program, fragment_shader);
   glLinkProgram(shader_program);
   glGetProgramiv(shader_program, GL_LINK_STATUS, &compile_status);
   if (!compile_status) {
@@ -87,25 +107,41 @@ unsigned int compile(const char * vertex_source,
   }
 
   glDeleteShader(vertex_shader);
+  if (geometry_source_size != 0)
+    glDeleteShader(geometry_shader);
   glDeleteShader(fragment_shader);
 
   return shader_program;
 }
 
 unsigned int compile_from_files(const char * vertex_path,
+                                const char * geometry_path,
                                 const char * fragment_path)
 {
-  int vertex_source_size;
-  char * vertex_source = read_file(vertex_path, &vertex_source_size);
+  int vertex_source_size = 0;
+  char * vertex_source = NULL;
+  int geometry_source_size = 0;
+  char * geometry_source = NULL;
+  int fragment_source_size = 0;
+  char * fragment_source = NULL;
+
+  vertex_source = read_file(vertex_path, &vertex_source_size);
   assert(vertex_source != NULL);
-  int fragment_source_size;
-  char * fragment_source = read_file(fragment_path, &fragment_source_size);
+
+  if (geometry_path != NULL) {
+    geometry_source = read_file(geometry_path, &geometry_source_size);
+    assert(geometry_source != NULL);
+  }
+
+  fragment_source = read_file(fragment_path, &fragment_source_size);
   assert(fragment_source != NULL);
 
   unsigned int program = compile(vertex_source, vertex_source_size,
+                                 geometry_source, geometry_source_size,
                                  fragment_source, fragment_source_size);
 
   free(vertex_source);
+  free(geometry_source);
   free(fragment_source);
 
   return program;

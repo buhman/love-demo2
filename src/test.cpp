@@ -9,8 +9,8 @@
 struct location {
   struct {
     unsigned int position;
-    unsigned int normal;
-    unsigned int texture;
+    unsigned int block_id;
+    unsigned int configuration;
   } attrib;
   struct {
     unsigned int transform;
@@ -22,18 +22,27 @@ struct location {
 static unsigned int test_program;
 static struct location location;
 
+static unsigned int vertex_array_objects[4];
+static unsigned int vertex_buffers[4];
+static unsigned int vertex_count[4];
+//static unsigned int index_buffers[4];
+//static unsigned int index_count[4];
+
+static const int vertex_size = 8;
+
 void load_program()
 {
   unsigned int program = compile_from_files("shader/test.vert",
+                                            "shader/test.geom",
                                             "shader/test.frag");
 
   location.attrib.position = glGetAttribLocation(program, "Position");
-  location.attrib.normal = glGetAttribLocation(program, "Normal");
-  location.attrib.texture = glGetAttribLocation(program, "Texture");
-  printf("attributes:\n  position %u\n  normal %u\n  texture %u\n",
+  location.attrib.block_id = glGetAttribLocation(program, "BlockID");
+  location.attrib.configuration = glGetAttribLocation(program, "Configuration");
+  printf("attributes:\n  position %u\n  block_id %u\n  configuration %u\n",
          location.attrib.position,
-         location.attrib.normal,
-         location.attrib.texture);
+         location.attrib.block_id,
+         location.attrib.configuration);
 
   location.uniform.transform = glGetUniformLocation(program, "Transform");
   location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
@@ -44,23 +53,11 @@ void load_program()
   test_program = program;
 }
 
-static unsigned int vertex_array_objects[4];
-static unsigned int vertex_buffers[4];
-static unsigned int index_buffers[4];
-static unsigned int index_count[4];
-
 const char * vertex_paths[] = {
-  "minecraft/region.0.0.vtx",
-  "minecraft/region.0.-1.vtx",
-  "minecraft/region.-1.0.vtx",
-  "minecraft/region.-1.-1.vtx",
-};
-
-static const char * index_paths[] = {
-  "minecraft/region.0.0.idx",
-  "minecraft/region.0.-1.idx",
-  "minecraft/region.-1.0.idx",
-  "minecraft/region.-1.-1.idx",
+  "minecraft/region.0.0.inst.vtx",
+  "minecraft/region.0.-1.inst.vtx",
+  "minecraft/region.-1.0.inst.vtx",
+  "minecraft/region.-1.-1.inst.vtx",
 };
 
 void load_vertex_buffer(int i)
@@ -70,10 +67,12 @@ void load_vertex_buffer(int i)
 
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[i]);
   glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
+  vertex_count[i] = vertex_buffer_data_size / vertex_size;
 
   free(vertex_buffer_data);
 }
 
+/*
 void load_element_buffer(int i)
 {
   int index_buffer_data_size;
@@ -85,45 +84,49 @@ void load_element_buffer(int i)
 
   free(index_buffer_data);
 }
+*/
 
 void load_vertex_attributes()
 {
   glVertexAttribPointer(location.attrib.position,
                         3,
-                        GL_FLOAT,
+                        GL_SHORT,
                         GL_FALSE,
-                        (sizeof (float)) * 9,
-                        (void*)(0 * 4)
+                        vertex_size,
+                        (void*)(0)
                         );
-  glVertexAttribPointer(location.attrib.normal,
-                        3,
-                        GL_FLOAT,
+  glVertexAttribPointer(location.attrib.block_id,
+                        1,
+                        GL_UNSIGNED_BYTE,
                         GL_FALSE,
-                        (sizeof (float)) * 9,
-                        (void*)(3 * 4)
+                        vertex_size,
+                        (void*)(6)
                         );
-  glVertexAttribPointer(location.attrib.texture,
-                        3,
-                        GL_FLOAT,
+  glVertexAttribPointer(location.attrib.configuration,
+                        1,
+                        GL_UNSIGNED_BYTE,
                         GL_FALSE,
-                        (sizeof (float)) * 9,
-                        (void*)(6 * 4)
+                        vertex_size,
+                        (void*)(7)
                         );
   glEnableVertexAttribArray(location.attrib.position);
-  glEnableVertexAttribArray(location.attrib.normal);
-  glEnableVertexAttribArray(location.attrib.texture);
+  glEnableVertexAttribArray(location.attrib.block_id);
+  glEnableVertexAttribArray(location.attrib.configuration);
+  glVertexAttribDivisor(location.attrib.position, 1);
+  glVertexAttribDivisor(location.attrib.block_id, 1);
+  glVertexAttribDivisor(location.attrib.configuration, 1);
 }
 
 void load_buffers()
 {
   glGenVertexArrays(4, vertex_array_objects);
-  glGenBuffers(4, index_buffers);
+  //glGenBuffers(4, index_buffers);
   glGenBuffers(4, vertex_buffers);
 
   for (int i = 0; i < 4; i++) {
     glBindVertexArray(vertex_array_objects[i]);
 
-    load_element_buffer(i);
+    //load_element_buffer(i);
     load_vertex_buffer(i);
     load_vertex_attributes();
   }
@@ -234,9 +237,22 @@ void draw()
   //glBindBuffer(GL_UNIFORM_BUFFER, textures_ubo);
   //glBindBufferBase(GL_UNIFORM_BUFFER, 0, textures_ubo);
 
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_FRONT);
+  glFrontFace(GL_CCW);
+
   for (int i = 0; i < 4; i++) {
     glBindVertexArray(vertex_array_objects[i]);
 
-    glDrawElements(GL_TRIANGLES, index_count[i], GL_UNSIGNED_INT, 0);
+    //glDrawElements(GL_TRIANGLES, index_count[i], GL_UNSIGNED_INT, 0);
+
+    int instance_count = vertex_count[i];
+    //printf("instance_count %d\n", instance_count);
+
+    glPointSize(10.0);
+    glDrawArraysInstanced(GL_POINTS,
+                          0,
+                          1,
+                          instance_count);
   }
 }

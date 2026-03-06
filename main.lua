@@ -40,9 +40,6 @@ function love.run()
                return a or 0, b
             end
          end
-         if name == "keypressed" then
-            keypressed(a, b, c)
-         end
       end
 
       local dt = love.timer.step()
@@ -52,5 +49,7 @@ function love.run()
 
       love.graphics.present()
       love.timer.sleep(0.001)
+      local fps = love.timer.getFPS( )
+      print(fps)
    end
 end

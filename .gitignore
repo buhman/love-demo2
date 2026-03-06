@@ -6,3 +6,4 @@
 main
 *.so
 *.dylib
+__pycache__
