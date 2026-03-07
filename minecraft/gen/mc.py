@@ -2,6 +2,7 @@ import sys
 import struct
 from pprint import pprint
 from itertools import chain
+from collections import defaultdict
 
 import mcregion
 import vec3
@@ -15,15 +16,6 @@ def wrap_n(nc, chunk_c):
         nc = 0
         chunk_c = chunk_c + 1
     return nc, chunk_c
-
-normals = [
-    (-1.0, 0.0, 0.0),
-    (0.0, -1.0, 0.0),
-    (0.0, 0.0, -1.0),
-    (0.0, 0.0, 1.0),
-    (0.0, 1.0, 0.0),
-    (1.0, 0.0, 0.0),
-]
 
 def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     block_id = level_table[(chunk_x, chunk_z)].blocks[block_index]
@@ -51,7 +43,7 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     center_position = vec3.add((x, y, z), (chunk_x * 16, 0, chunk_z * 16))
 
     def find_non_neighbors():
-        for i, normal in enumerate(normals):
+        for i, normal in enumerate(vertex_buffer.normals):
             neighbor = vec3.add(normal, (x, y, z))
             if not neighbor_exists(*neighbor):
                 yield i
@@ -87,17 +79,38 @@ def build_block_configuration_table():
         indices = []
         for j in range(6):
             if ((i >> j) & 1) != 0:
-                indices.extend(vertex_buffer.faces_by_normal[normals[j]])
+                indices.extend(vertex_buffer.faces_by_normal[vertex_buffer.normals[j]])
         yield indices
 
-def build_block_instances(f, blocks):
+def build_block_instances(blocks):
+    by_configuration = defaultdict(list)
+
     for position, block_id, normal_indices in blocks:
-        block_configuration = normal_indices_as_block_configuration(normal_indices)
+        configuration = normal_indices_as_block_configuration(normal_indices)
         #print(position, block_id, block_configuration)
-        f.write(struct.pack("<hhhBB",
-                            position[0], position[1], position[2],
-                            block_id,
-                            block_configuration))
+        by_configuration[configuration].append((position, block_id))
+
+    offset = 0
+    configuration_instance_count_offset = []
+    with open(f"{data_path}.instance.vtx", "wb") as f:
+        for configuration in range(64):
+            if configuration not in by_configuration:
+                configuration_instance_count_offset.append((0, 0))
+                continue
+            blocks = by_configuration[configuration]
+            configuration_instance_count_offset.append((len(blocks), offset))
+            for position, block_id in blocks:
+                packed = struct.pack("<hhhBB",
+                                     position[0], position[1], position[2],
+                                     block_id,
+                                     0)
+                f.write(packed)
+                offset += len(packed)
+
+    with open(f"{data_path}.instance.cfg", "wb") as f:
+        for instance_count, offset in configuration_instance_count_offset:
+            print(instance_count, offset)
+            f.write(struct.pack("<ii", instance_count, offset))
 
 def main(mcr_path, data_path):
     with open(mcr_path, "rb") as f:
@@ -111,9 +124,7 @@ def main(mcr_path, data_path):
 
     level_table = build_level_table(mem, locations)
     blocks = devoxelize_region(level_table)
-
-    with open(data_path + ".vtx", "wb") as f:
-        build_block_instances(f, blocks)
+    build_block_instances(blocks)
 
     #pprint(list(build_block_configuration_table()))
 

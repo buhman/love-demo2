@@ -1,20 +1,26 @@
 #version 330 core
 
-layout (location = 0) in vec3 Position;
-layout (location = 1) in float BlockID;
-layout (location = 2) in float Configuration;
+// per-vertex:
+in vec3 Position;
+in vec3 Normal;
+in vec2 Texture;
+// per-instance:
+in vec3 BlockPosition;
+in float BlockID;
 
 out VS_OUT {
-  int BlockID;
-  int Configuration;
+  vec3 Normal;
+  vec2 Texture;
+  flat int BlockID;
 } vs_out;
 
 uniform mat4 Transform;
 
 void main()
 {
+  vs_out.Normal = Normal.xzy;
+  vs_out.Texture = Texture;
   vs_out.BlockID = int(BlockID);
-  vs_out.Configuration = int(Configuration);
 
-  gl_Position = vec4(Position.xyz, 1.0);
+  gl_Position = Transform * vec4((Position + BlockPosition).xzy, 1.0);
 }

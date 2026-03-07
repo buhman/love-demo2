@@ -1,16 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "glad/gl.h"
 #include "opengl.h"
 #include "directxmath/directxmath.h"
 #include "test.h"
 
+#include "data.inc"
+
 struct location {
   struct {
     unsigned int position;
+    unsigned int normal;
+    unsigned int texture;
+    unsigned int block_position;
     unsigned int block_id;
-    unsigned int configuration;
+    //unsigned int configuration;
   } attrib;
   struct {
     unsigned int transform;
@@ -22,27 +28,55 @@ struct location {
 static unsigned int test_program;
 static struct location location;
 
-static unsigned int vertex_array_objects[4];
-static unsigned int vertex_buffers[4];
-static unsigned int vertex_count[4];
-//static unsigned int index_buffers[4];
-//static unsigned int index_count[4];
+struct char_tpl {
+  const char * vtx;
+  const char * cfg;
+};
+
+static const int region_count = 4;
+static const char_tpl vertex_paths[region_count] = {
+  { "minecraft/region.0.0.instance.vtx", "minecraft/region.0.0.instance.cfg" },
+  { "minecraft/region.-1.0.instance.vtx", "minecraft/region.-1.0.instance.cfg" },
+  { "minecraft/region.0.-1.instance.vtx", "minecraft/region.0.-1.instance.cfg" },
+  { "minecraft/region.-1.-1.instance.vtx", "minecraft/region.-1.-1.instance.cfg" },
+};
+
+static unsigned int vertex_array_objects[region_count];
+static unsigned int vertex_buffers[region_count];
+static unsigned int vertex_count[region_count];
+static unsigned int index_buffer;
+static unsigned int per_vertex_buffer;
 
 static const int vertex_size = 8;
+static const int per_vertex_size = (3 + 3 + 2) * 2;
+
+struct instance_cfg {
+  struct {
+    int instance_count;
+    int offset;
+  } cfg[64];
+};
+
+static instance_cfg instance_cfg[region_count];
 
 void load_program()
 {
   unsigned int program = compile_from_files("shader/test.vert",
-                                            "shader/test.geom",
+                                            NULL, //"shader/test.geom",
                                             "shader/test.frag");
 
   location.attrib.position = glGetAttribLocation(program, "Position");
+  location.attrib.normal = glGetAttribLocation(program, "Normal");
+  location.attrib.texture = glGetAttribLocation(program, "Texture");
+
+  location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
   location.attrib.block_id = glGetAttribLocation(program, "BlockID");
-  location.attrib.configuration = glGetAttribLocation(program, "Configuration");
-  printf("attributes:\n  position %u\n  block_id %u\n  configuration %u\n",
+  printf("attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n\n",
          location.attrib.position,
-         location.attrib.block_id,
-         location.attrib.configuration);
+         location.attrib.normal,
+         location.attrib.texture,
+         location.attrib.block_position,
+         location.attrib.block_id);
 
   location.uniform.transform = glGetUniformLocation(program, "Transform");
   location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
@@ -53,17 +87,10 @@ void load_program()
   test_program = program;
 }
 
-const char * vertex_paths[] = {
-  "minecraft/region.0.0.inst.vtx",
-  "minecraft/region.0.-1.inst.vtx",
-  "minecraft/region.-1.0.inst.vtx",
-  "minecraft/region.-1.-1.inst.vtx",
-};
-
 void load_vertex_buffer(int i)
 {
   int vertex_buffer_data_size;
-  void * vertex_buffer_data = read_file(vertex_paths[i], &vertex_buffer_data_size);
+  void * vertex_buffer_data = read_file(vertex_paths[i].vtx, &vertex_buffer_data_size);
 
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[i]);
   glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
@@ -72,23 +99,65 @@ void load_vertex_buffer(int i)
   free(vertex_buffer_data);
 }
 
-/*
-void load_element_buffer(int i)
+void load_per_vertex_buffer()
+{
+  int vertex_buffer_data_size;
+  void * vertex_buffer_data = read_file("minecraft/per_vertex.vtx", &vertex_buffer_data_size);
+
+  glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
+  glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
+
+  free(vertex_buffer_data);
+}
+
+void load_index_buffer()
 {
   int index_buffer_data_size;
-  void * index_buffer_data = read_file(index_paths[i], &index_buffer_data_size);
+  void * index_buffer_data = read_file("minecraft/configuration.idx", &index_buffer_data_size);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffers[i]);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_data_size, index_buffer_data, GL_STATIC_DRAW);
-  index_count[i] = index_buffer_data_size / 4;
 
   free(index_buffer_data);
 }
-*/
 
-void load_vertex_attributes()
+void load_vertex_attributes(int i)
 {
+  glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
+
   glVertexAttribPointer(location.attrib.position,
+                        3,
+                        GL_HALF_FLOAT,
+                        GL_FALSE,
+                        per_vertex_size,
+                        (void*)(0)
+                        );
+
+  glVertexAttribPointer(location.attrib.normal,
+                        3,
+                        GL_HALF_FLOAT,
+                        GL_FALSE,
+                        per_vertex_size,
+                        (void*)(6)
+                        );
+
+  glVertexAttribPointer(location.attrib.texture,
+                        2,
+                        GL_HALF_FLOAT,
+                        GL_FALSE,
+                        per_vertex_size,
+                        (void*)(12)
+                        );
+  glEnableVertexAttribArray(location.attrib.position);
+  glEnableVertexAttribArray(location.attrib.normal);
+  glEnableVertexAttribArray(location.attrib.texture);
+  glVertexAttribDivisor(location.attrib.position, 0);
+  glVertexAttribDivisor(location.attrib.normal, 0);
+  glVertexAttribDivisor(location.attrib.texture, 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[i]);
+
+  glVertexAttribPointer(location.attrib.block_position,
                         3,
                         GL_SHORT,
                         GL_FALSE,
@@ -102,34 +171,43 @@ void load_vertex_attributes()
                         vertex_size,
                         (void*)(6)
                         );
-  glVertexAttribPointer(location.attrib.configuration,
-                        1,
-                        GL_UNSIGNED_BYTE,
-                        GL_FALSE,
-                        vertex_size,
-                        (void*)(7)
-                        );
-  glEnableVertexAttribArray(location.attrib.position);
+  glEnableVertexAttribArray(location.attrib.block_position);
   glEnableVertexAttribArray(location.attrib.block_id);
-  glEnableVertexAttribArray(location.attrib.configuration);
-  glVertexAttribDivisor(location.attrib.position, 1);
+  glVertexAttribDivisor(location.attrib.block_position, 1);
   glVertexAttribDivisor(location.attrib.block_id, 1);
-  glVertexAttribDivisor(location.attrib.configuration, 1);
+}
+
+void load_instance_cfg(int i)
+{
+  int data_size;
+  void * data = read_file(vertex_paths[i].cfg, &data_size);
+  assert(data_size == 512);
+
+  memcpy(&instance_cfg[i], data, data_size);
 }
 
 void load_buffers()
 {
-  glGenVertexArrays(4, vertex_array_objects);
-  //glGenBuffers(4, index_buffers);
-  glGenBuffers(4, vertex_buffers);
+  // per-vertex buffer
+  glGenBuffers(1, &per_vertex_buffer);
+  load_per_vertex_buffer();
 
-  for (int i = 0; i < 4; i++) {
+  // per-instance buffer
+  glGenVertexArrays(region_count, vertex_array_objects);
+  glGenBuffers(region_count, vertex_buffers);
+
+  for (int i = 0; i < region_count; i++) {
     glBindVertexArray(vertex_array_objects[i]);
 
-    //load_element_buffer(i);
     load_vertex_buffer(i);
-    load_vertex_attributes();
+    load_vertex_attributes(i);
+    load_instance_cfg(i);
   }
+
+  // index buffer
+
+  glGenBuffers(1, &index_buffer);
+  load_index_buffer();
 }
 
 static unsigned int texture;
@@ -167,8 +245,6 @@ void load_texture_shader_storage()
   void * textures_data = read_file("minecraft/block_id_to_texture_id.data", &textures_data_size);
   assert(textures_data != NULL);
 
-  printf("%d\n", textures_data_size);
-
   glBufferData(GL_UNIFORM_BUFFER, textures_data_size, textures_data, GL_STATIC_DRAW);
   free(textures_data);
 
@@ -205,6 +281,11 @@ void update(float lx, float ly, float ry)
   vz += -2.5 * ly;
 }
 
+static inline int popcount(int x)
+{
+  return __builtin_popcount(x);
+}
+
 void draw()
 {
   XMVECTOR eye = XMVectorSet(vx + -50.0f, vz + -50.0f, vy + 150.0f, 0.0f);
@@ -237,22 +318,24 @@ void draw()
   //glBindBuffer(GL_UNIFORM_BUFFER, textures_ubo);
   //glBindBufferBase(GL_UNIFORM_BUFFER, 0, textures_ubo);
 
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_FRONT);
-  glFrontFace(GL_CCW);
+  //glEnable(GL_CULL_FACE);
+  //glCullFace(GL_FRONT);
+  //glFrontFace(GL_CCW);
 
-  for (int i = 0; i < 4; i++) {
-    glBindVertexArray(vertex_array_objects[i]);
+  for (int region_index = 0; region_index < region_count; region_index++) {
+    glBindVertexArray(vertex_array_objects[region_index]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+    for (int configuration = 1; configuration < 64; configuration++) {
+      int element_count = 6 * popcount(configuration);
+      const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
 
-    //glDrawElements(GL_TRIANGLES, index_count[i], GL_UNSIGNED_INT, 0);
+      int instance_count = instance_cfg[region_index].cfg[configuration].instance_count;
+      int base_instance = instance_cfg[region_index].cfg[configuration].offset / vertex_size; // index into region.0.0.instance.vtx
 
-    int instance_count = vertex_count[i];
-    //printf("instance_count %d\n", instance_count);
+      if (instance_count == 0)
+        continue;
 
-    glPointSize(10.0);
-    glDrawArraysInstanced(GL_POINTS,
-                          0,
-                          1,
-                          instance_count);
+      glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
+    }
   }
 }

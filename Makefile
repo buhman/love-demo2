@@ -2,7 +2,7 @@
 CC=$(PREFIX)gcc
 CXX=$(PREFIX)g++
 
-OPT = -Og -march=x86-64-v3
+OPT = -O0 -march=x86-64-v3
 
 CSTD = -std=gnu23
 CXXSTD = -std=gnu++23

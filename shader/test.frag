@@ -1,10 +1,10 @@
 #version 330 core
 
-in GS_OUT {
+in VS_OUT {
   vec3 Normal;
   vec2 Texture;
   flat int BlockID;
-} gs_out;
+} fs_in;
 
 out vec4 FragColor;
 
@@ -32,13 +32,13 @@ int Textures[256] = int[256](
 void main()
 {
   vec3 light_direction = normalize(vec3(-1, -0.5, 0.5));
-  float diffuse_intensity = max(dot(normalize(gs_out.Normal), light_direction), 0.0);
+  float diffuse_intensity = max(dot(normalize(fs_in.Normal), light_direction), 0.0);
 
-  int terrain_ix = int(Textures[int(gs_out.BlockID)]);
+  int terrain_ix = int(Textures[int(fs_in.BlockID)]);
   int terrain_x = terrain_ix % 16;
   int terrain_y = terrain_ix / 16;
   ivec2 coord = ivec2(terrain_x, terrain_y) * 16;
-  coord += ivec2(gs_out.Texture.xy * 16.0);
+  coord += ivec2(fs_in.Texture.xy * 16.0);
 
   vec4 texture_color = texelFetch(TerrainSampler, coord, 0);
   if (texture_color.w != 1.0) {
@@ -46,8 +46,11 @@ void main()
     return;
   }
 
-  if (int(gs_out.BlockID) == 18) // leaves
+  if (int(fs_in.BlockID) == 18) // leaves
     texture_color.xyz *= vec3(0.125, 0.494, 0.027);
+
+  if (diffuse_intensity < 0.1)
+    diffuse_intensity = 0.1;
 
   FragColor = vec4(texture_color.xyz * vec3(diffuse_intensity), 1.0);
 }

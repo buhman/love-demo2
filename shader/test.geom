@@ -63,25 +63,22 @@ vec4 transform(vec3 p)
 void emit_face(vec3 normal, int face[4])
 {
   vec3 position = gl_in[0].gl_Position.xyz;
+  gs_out.Normal = normal.xzy;
 
   PT vtx0 = vertices[face[0]];
   gl_Position = transform(position + vtx0.Position * 0.5);
-  gs_out.Normal = normal.xzy;
   gs_out.Texture = vtx0.Texture;
   EmitVertex();
   PT vtx1 = vertices[face[1]];
   gl_Position = transform(position + vtx1.Position * 0.5);
-  gs_out.Normal = normal.xzy;
   gs_out.Texture = vtx1.Texture;
   EmitVertex();
   PT vtx2 = vertices[face[2]];
   gl_Position = transform(position + vtx2.Position * 0.5);
-  gs_out.Normal = normal.xzy;
   gs_out.Texture = vtx2.Texture;
   EmitVertex();
   PT vtx3 = vertices[face[3]];
   gl_Position = transform(position + vtx3.Position * 0.5);
-  gs_out.Normal = normal.xzy;
   gs_out.Texture = vtx3.Texture;
   EmitVertex();
   EndPrimitive();
