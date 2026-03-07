@@ -1,41 +1,8 @@
 import struct
 import vec3
-
-vertex_table = [
-    ((-1.0, 1.0, -1.0), (0.0, 1.0, 0.0), (1.0, 0.0)),
-    ((1.0, 1.0, 1.0), (0.0, 1.0, 0.0), (0.0, 1.0)),
-    ((1.0, 1.0, -1.0), (0.0, 1.0, 0.0), (0.0, 0.0)),
-    ((1.0, 1.0, 1.0), (0.0, 0.0, 1.0), (1.0, 1.0)),
-    ((-1.0, -1.0, 1.0), (0.0, 0.0, 1.0), (0.0, 0.0)),
-    ((1.0, -1.0, 1.0), (0.0, 0.0, 1.0), (1.0, 0.0)),
-    ((-1.0, 1.0, 1.0), (-1.0, 0.0, 0.0), (1.0, 1.0)),
-    ((-1.0, -1.0, -1.0), (-1.0, 0.0, 0.0), (0.0, 0.0)),
-    ((-1.0, -1.0, 1.0), (-1.0, 0.0, 0.0), (1.0, 0.0)),
-    ((1.0, -1.0, -1.0), (0.0, -1.0, 0.0), (1.0, 0.0)),
-    ((-1.0, -1.0, 1.0), (0.0, -1.0, 0.0), (0.0, 1.0)),
-    ((-1.0, -1.0, -1.0), (0.0, -1.0, 0.0), (0.0, 0.0)),
-    ((1.0, 1.0, -1.0), (1.0, 0.0, 0.0), (1.0, 1.0)),
-    ((1.0, -1.0, 1.0), (1.0, 0.0, 0.0), (0.0, 0.0)),
-    ((1.0, -1.0, -1.0), (1.0, 0.0, 0.0), (1.0, 0.0)),
-    ((-1.0, 1.0, -1.0), (0.0, 0.0, -1.0), (1.0, 1.0)),
-    ((1.0, -1.0, -1.0), (0.0, 0.0, -1.0), (0.0, 0.0)),
-    ((-1.0, -1.0, -1.0), (0.0, 0.0, -1.0), (1.0, 0.0)),
-    ((-1.0, 1.0, 1.0), (0.0, 1.0, 0.0), (1.0, 1.0)),
-    ((-1.0, 1.0, 1.0), (0.0, 0.0, 1.0), (0.0, 1.0)),
-    ((-1.0, 1.0, -1.0), (-1.0, 0.0, 0.0), (0.0, 1.0)),
-    ((1.0, -1.0, 1.0), (0.0, -1.0, 0.0), (1.0, 1.0)),
-    ((1.0, 1.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0)),
-    ((1.0, 1.0, -1.0), (0.0, 0.0, -1.0), (0.0, 1.0))
-]
-
-faces_by_normal = {
-    (-1.0, 0.0, 0.0): [6, 7, 8, 6, 20, 7],
-    (0.0, -1.0, 0.0): [9, 10, 11, 9, 21, 10],
-    (0.0, 0.0, -1.0): [15, 16, 17, 15, 23, 16],
-    (0.0, 0.0, 1.0): [3, 4, 5, 3, 19, 4],
-    (0.0, 1.0, 0.0): [0, 1, 2, 0, 18, 1],
-    (1.0, 0.0, 0.0): [12, 13, 14, 12, 22, 13]
-}
+import obj
+import obj_state
+import sys
 
 normals = [
     (-1.0, 0.0, 0.0),
@@ -46,7 +13,9 @@ normals = [
     (1.0, 0.0, 0.0),
 ]
 
-def build_configuration_index_buffers(f):
+def build_configuration_index_buffers(f, faces_by_normal):
+    assert(set(normals) == set(faces_by_normal.keys()))
+
     offset = 0
     configuration_offsets = []
     for configuration in range(64):
@@ -65,14 +34,37 @@ def build_configuration_index_buffers(f):
         if i % 8 == 7:
             print()
 
-def build_vertex_buffer(f):
-    for position, normal, texture in vertex_table:
+def build_vertex_buffer(f, vertex_buffer):
+    for position, normal, texture in vertex_buffer:
         position = vec3.mul(position, 0.5)
         f.write(struct.pack("<eeeeeeee", *position, *normal, *texture))
 
-if __name__ == "__main__":
-    with open("configuration.idx", "wb") as f:
-        build_configuration_index_buffers(f)
+def write_indices(f, index_buffer, start, count):
+    for i in range(count):
+        f.write(struct.pack("<B", index_buffer[start + i]))
 
-    with open("per_vertex.vtx", "wb") as f:
-        build_vertex_buffer(f)
+def main():
+    vertex_buffer = []
+    index_buffer = []
+    index_lookup = {}
+
+    cube_state = obj.parse_obj_from_filename("cube.obj")
+
+    obj_state.append_triangles(cube_state, vertex_buffer, index_buffer, index_lookup)
+    cube_faces_by_normal = obj_state.build_faces_by_normal(vertex_buffer, index_buffer)
+
+    tallgrass_index_start = len(index_buffer)
+    tallgrass_state = obj.parse_obj_from_filename("tallgrass.obj")
+    obj_state.append_triangles(tallgrass_state, vertex_buffer, index_buffer, index_lookup)
+    tallgrass_index_count = len(index_buffer) - tallgrass_index_start
+    print(tallgrass_index_start, tallgrass_index_count)
+
+    with open("../configuration.idx", "wb") as f:
+        build_configuration_index_buffers(f, cube_faces_by_normal)
+        write_indices(f, index_buffer, tallgrass_index_start, tallgrass_index_count)
+
+    with open("../per_vertex.vtx", "wb") as f:
+        build_vertex_buffer(f, vertex_buffer)
+
+if __name__ == "__main__":
+    main()

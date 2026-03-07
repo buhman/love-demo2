@@ -12,7 +12,7 @@ uniform sampler2D TerrainSampler;
 
 int Textures[256] = int[256](
   185,   1,   0,   2,  16,   4,  15,  17, 205, 205, 237, 237,  18,  19,  32,  33,
-   34,  20,  52,  48,  49, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,   0,
+   34,  20,  52,  48,  49, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,  39,
   185, 185, 185,  64, 185,  13,  12,  29,  28,  39,  38,   5,   5,   7,   8,  35,
    36,  37,  80,  31,  65,   4,  27,  84,  50,  40,  43,  88,  87,  44,  61, 185,
    81,  83, 128,  16, 185,  96,   6,  82,   6,  51,  51, 115,  99, 185,  66,  67,
@@ -46,11 +46,13 @@ void main()
     return;
   }
 
-  if (int(fs_in.BlockID) == 18) // leaves
+  if (fs_in.BlockID == 18 || fs_in.BlockID == 31) // leaves
     texture_color.xyz *= vec3(0.125, 0.494, 0.027);
 
   if (diffuse_intensity < 0.1)
     diffuse_intensity = 0.1;
+  if (fs_in.BlockID == 31) // tall_grass
+    diffuse_intensity = 1.0;
 
   FragColor = vec4(texture_color.xyz * vec3(diffuse_intensity), 1.0);
 }

@@ -34,7 +34,7 @@ struct char_tpl {
 };
 
 static const int region_count = 4;
-static const char_tpl vertex_paths[region_count] = {
+static const char_tpl vertex_paths[] = {
   { "minecraft/region.0.0.instance.vtx", "minecraft/region.0.0.instance.cfg" },
   { "minecraft/region.-1.0.instance.vtx", "minecraft/region.-1.0.instance.cfg" },
   { "minecraft/region.0.-1.instance.vtx", "minecraft/region.0.-1.instance.cfg" },
@@ -49,11 +49,13 @@ static unsigned int per_vertex_buffer;
 static const int vertex_size = 8;
 static const int per_vertex_size = (3 + 3 + 2) * 2;
 
+static const int instance_cfg_length = 64 + 1;
+
 struct instance_cfg {
-  struct {
+  struct region_instance {
     int instance_count;
     int offset;
-  } cfg[64];
+  } cfg[instance_cfg_length];
 };
 
 static instance_cfg instance_cfg[region_count];
@@ -160,7 +162,7 @@ void load_instance_cfg(int i)
 {
   int data_size;
   void * data = read_file(vertex_paths[i].cfg, &data_size);
-  assert(data_size == 512);
+  assert(data_size == (sizeof (struct instance_cfg)));
 
   memcpy(&instance_cfg[i], data, data_size);
 }
@@ -308,6 +310,9 @@ void draw()
   for (int region_index = 0; region_index < region_count; region_index++) {
     glBindVertexBuffer(1, per_instance_vertex_buffers[region_index], 0, vertex_size);
 
+    //////////////////////////////////////////////////////////////////////
+    // cube blocks
+    //////////////////////////////////////////////////////////////////////
     for (int configuration = 1; configuration < 64; configuration++) {
       int element_count = 6 * popcount(configuration);
       const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
@@ -318,6 +323,19 @@ void draw()
       if (instance_count == 0)
         continue;
 
+      glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // non-cube blocks
+    //////////////////////////////////////////////////////////////////////
+    {
+      int element_count = 6 * 2;
+      const void * indices = (void *)((ptrdiff_t)1152);
+      int instance_count = instance_cfg[region_index].cfg[64].instance_count;
+      int base_instance = instance_cfg[region_index].cfg[64].offset / vertex_size; // index into region.0.0.instance.vtx
+      if (instance_count == 0)
+        continue;
       glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
     }
   }
