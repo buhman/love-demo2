@@ -41,9 +41,8 @@ static const char_tpl vertex_paths[region_count] = {
   { "minecraft/region.-1.-1.instance.vtx", "minecraft/region.-1.-1.instance.cfg" },
 };
 
-static unsigned int vertex_array_objects[region_count];
-static unsigned int vertex_buffers[region_count];
-static unsigned int vertex_count[region_count];
+static unsigned int vertex_array_object;
+static unsigned int per_instance_vertex_buffers[region_count];
 static unsigned int index_buffer;
 static unsigned int per_vertex_buffer;
 
@@ -87,16 +86,17 @@ void load_program()
   test_program = program;
 }
 
-void load_vertex_buffer(int i)
+void load_per_instance_vertex_buffer(int i)
 {
   int vertex_buffer_data_size;
   void * vertex_buffer_data = read_file(vertex_paths[i].vtx, &vertex_buffer_data_size);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[i]);
+  glBindBuffer(GL_ARRAY_BUFFER, per_instance_vertex_buffers[i]);
   glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
-  vertex_count[i] = vertex_buffer_data_size / vertex_size;
 
   free(vertex_buffer_data);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void load_per_vertex_buffer()
@@ -108,6 +108,8 @@ void load_per_vertex_buffer()
   glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
 
   free(vertex_buffer_data);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void load_index_buffer()
@@ -119,12 +121,14 @@ void load_index_buffer()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_data_size, index_buffer_data, GL_STATIC_DRAW);
 
   free(index_buffer_data);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void load_vertex_attributes(int i)
+void load_vertex_attributes()
 {
-  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
-  glBindVertexBuffer(1, vertex_buffers[i], 0, vertex_size);
+  glGenVertexArrays(1, &vertex_array_object);
+  glBindVertexArray(vertex_array_object);
 
   glVertexBindingDivisor(0, 0);
   glVertexBindingDivisor(1, 1);
@@ -148,6 +152,8 @@ void load_vertex_attributes(int i)
   glEnableVertexAttribArray(location.attrib.block_id);
   glVertexAttribFormat(location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
   glVertexAttribBinding(location.attrib.block_id, 1);
+
+  glBindVertexArray(0);
 }
 
 void load_instance_cfg(int i)
@@ -161,22 +167,18 @@ void load_instance_cfg(int i)
 
 void load_buffers()
 {
+  load_vertex_attributes();
+
   // per-vertex buffer
   glGenBuffers(1, &per_vertex_buffer);
   load_per_vertex_buffer();
 
   // per-instance buffer
-  glGenVertexArrays(region_count, vertex_array_objects);
-  glGenBuffers(region_count, vertex_buffers);
+  glGenBuffers(region_count, per_instance_vertex_buffers);
 
   for (int i = 0; i < region_count; i++) {
-    glBindVertexArray(vertex_array_objects[i]);
-
-    load_vertex_buffer(i);
-    load_vertex_attributes(i);
+    load_per_instance_vertex_buffer(i);
     load_instance_cfg(i);
-
-    glBindVertexArray(0);
   }
 
   // index buffer
@@ -206,6 +208,8 @@ void load_textures()
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
 
   free(texture_data);
+
+  glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 static unsigned int textures_ubo;
@@ -297,9 +301,12 @@ void draw()
   //glCullFace(GL_FRONT);
   //glFrontFace(GL_CCW);
 
+  glBindVertexArray(vertex_array_object);
+  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+
   for (int region_index = 0; region_index < region_count; region_index++) {
-    glBindVertexArray(vertex_array_objects[region_index]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+    glBindVertexBuffer(1, per_instance_vertex_buffers[region_index], 0, vertex_size);
 
     for (int configuration = 1; configuration < 64; configuration++) {
       int element_count = 6 * popcount(configuration);
