@@ -123,58 +123,31 @@ void load_index_buffer()
 
 void load_vertex_attributes(int i)
 {
-  glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
+  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
+  glBindVertexBuffer(1, vertex_buffers[i], 0, vertex_size);
 
-  glVertexAttribPointer(location.attrib.position,
-                        3,
-                        GL_HALF_FLOAT,
-                        GL_FALSE,
-                        per_vertex_size,
-                        (void*)(0)
-                        );
+  glVertexBindingDivisor(0, 0);
+  glVertexBindingDivisor(1, 1);
 
-  glVertexAttribPointer(location.attrib.normal,
-                        3,
-                        GL_HALF_FLOAT,
-                        GL_FALSE,
-                        per_vertex_size,
-                        (void*)(6)
-                        );
-
-  glVertexAttribPointer(location.attrib.texture,
-                        2,
-                        GL_HALF_FLOAT,
-                        GL_FALSE,
-                        per_vertex_size,
-                        (void*)(12)
-                        );
   glEnableVertexAttribArray(location.attrib.position);
+  glVertexAttribFormat(location.attrib.position, 3, GL_HALF_FLOAT, GL_FALSE, 0);
+  glVertexAttribBinding(location.attrib.position, 0);
+
   glEnableVertexAttribArray(location.attrib.normal);
+  glVertexAttribFormat(location.attrib.normal, 3, GL_HALF_FLOAT, GL_FALSE, 6);
+  glVertexAttribBinding(location.attrib.normal, 0);
+
   glEnableVertexAttribArray(location.attrib.texture);
-  glVertexAttribDivisor(location.attrib.position, 0);
-  glVertexAttribDivisor(location.attrib.normal, 0);
-  glVertexAttribDivisor(location.attrib.texture, 0);
+  glVertexAttribFormat(location.attrib.texture, 2, GL_HALF_FLOAT, GL_FALSE, 12);
+  glVertexAttribBinding(location.attrib.texture, 0);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[i]);
-
-  glVertexAttribPointer(location.attrib.block_position,
-                        3,
-                        GL_SHORT,
-                        GL_FALSE,
-                        vertex_size,
-                        (void*)(0)
-                        );
-  glVertexAttribPointer(location.attrib.block_id,
-                        1,
-                        GL_UNSIGNED_BYTE,
-                        GL_FALSE,
-                        vertex_size,
-                        (void*)(6)
-                        );
   glEnableVertexAttribArray(location.attrib.block_position);
+  glVertexAttribFormat(location.attrib.block_position, 3, GL_SHORT, GL_FALSE, 0);
+  glVertexAttribBinding(location.attrib.block_position, 1);
+
   glEnableVertexAttribArray(location.attrib.block_id);
-  glVertexAttribDivisor(location.attrib.block_position, 1);
-  glVertexAttribDivisor(location.attrib.block_id, 1);
+  glVertexAttribFormat(location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
+  glVertexAttribBinding(location.attrib.block_id, 1);
 }
 
 void load_instance_cfg(int i)
@@ -202,6 +175,8 @@ void load_buffers()
     load_vertex_buffer(i);
     load_vertex_attributes(i);
     load_instance_cfg(i);
+
+    glBindVertexArray(0);
   }
 
   // index buffer
@@ -325,6 +300,7 @@ void draw()
   for (int region_index = 0; region_index < region_count; region_index++) {
     glBindVertexArray(vertex_array_objects[region_index]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+
     for (int configuration = 1; configuration < 64; configuration++) {
       int element_count = 6 * popcount(configuration);
       const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
