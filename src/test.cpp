@@ -49,7 +49,8 @@ static unsigned int per_vertex_buffer;
 static const int vertex_size = 8;
 static const int per_vertex_size = (3 + 3 + 2) * 2;
 
-static const int instance_cfg_length = 64 + 1;
+static const int custom_block_types = 3;
+static const int instance_cfg_length = 64 + custom_block_types;
 
 struct instance_cfg {
   struct region_instance {
@@ -327,13 +328,13 @@ void draw()
     }
 
     //////////////////////////////////////////////////////////////////////
-    // non-cube blocks
+    // custom blocks
     //////////////////////////////////////////////////////////////////////
-    {
-      int element_count = 6 * 2;
-      const void * indices = (void *)((ptrdiff_t)1152);
-      int instance_count = instance_cfg[region_index].cfg[64].instance_count;
-      int base_instance = instance_cfg[region_index].cfg[64].offset / vertex_size; // index into region.0.0.instance.vtx
+    for (int i = 0; i < custom_block_types; i++) {
+      int element_count = index_buffer_custom_offsets[i].count;
+      const void * indices = (void *)((ptrdiff_t)index_buffer_custom_offsets[i].offset);
+      int instance_count = instance_cfg[region_index].cfg[64 + i].instance_count;
+      int base_instance = instance_cfg[region_index].cfg[64 + i].offset / vertex_size; // index into region.0.0.instance.vtx
       if (instance_count == 0)
         continue;
       glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);

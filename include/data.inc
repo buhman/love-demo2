@@ -8,3 +8,11 @@ short index_buffer_configuration_offsets[] = {
   768,  780,  798,  816,  840,  858,  882,  906,
   936,  954,  978, 1002, 1032, 1056, 1086, 1116,
 };
+struct {
+  short offset;
+  short count;
+} index_buffer_custom_offsets[] = {
+  {1152, 12}, // tallgrass.obj
+  {1164, 36}, // fence.obj
+  {1200, 36}, // torch.obj
+};

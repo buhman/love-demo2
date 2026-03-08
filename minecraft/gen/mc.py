@@ -4,11 +4,14 @@ from pprint import pprint
 from itertools import chain
 from collections import defaultdict
 import functools
+import os
 
 import mcregion
 import vec3
 import vertex_buffer
 import data
+
+FAST = "FAST" in os.environ
 
 def wrap_n(nc, chunk_c):
     if nc < 0:
@@ -19,14 +22,24 @@ def wrap_n(nc, chunk_c):
         chunk_c = chunk_c + 1
     return nc, chunk_c
 
-non_solid_blocks = {
-    data.BlockID.TALL_GRASS,
-    data.BlockID.MUSHROOM_1,
-    data.BlockID.MUSHROOM_2,
-    data.BlockID.FLOWER,
-    data.BlockID.ROSE,
-    data.BlockID.SAPLING,
-}
+custom_blocks = [
+    { # "tallgrass" model
+        data.BlockID.TALL_GRASS,
+        data.BlockID.MUSHROOM_1,
+        data.BlockID.MUSHROOM_2,
+        data.BlockID.FLOWER,
+        data.BlockID.ROSE,
+        data.BlockID.SAPLING,
+    },
+    { # "fence" model
+        data.BlockID.FENCE,
+    },
+    { # "torch" model
+        data.BlockID.TORCH,
+    },
+]
+
+non_solid_blocks = set(chain.from_iterable(custom_blocks))
 
 def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
     if ny > 127 or ny < 0:
@@ -67,6 +80,8 @@ def devoxelize_region(level_table, level_table_keys):
     for chunk_x, chunk_z in level_table_keys:
         for block_index in range(128 * 16 * 16):
             yield from block_neighbors(level_table, chunk_x, chunk_z, block_index)
+        if FAST:
+            return
 
 def build_level_table(level_table, mem, locations):
     for location in locations:
@@ -92,15 +107,6 @@ def build_block_configuration_table():
                 indices.extend(vertex_buffer.faces_by_normal[vertex_buffer.normals[j]])
         yield indices
 
-non_cube_blocks = {
-    data.BlockID.TALL_GRASS,
-    data.BlockID.MUSHROOM_1,
-    data.BlockID.MUSHROOM_2,
-    data.BlockID.FLOWER,
-    data.BlockID.ROSE,
-    data.BlockID.SAPLING,
-}
-
 def pack_instance_data(position, block_id):
     packed = struct.pack("<hhhBB",
                          position[0], position[1], position[2],
@@ -111,11 +117,18 @@ def pack_instance_data(position, block_id):
 def build_block_instances(blocks):
     by_configuration = defaultdict(list)
 
-    deferred_blocks = []
+    deferred_blocks = defaultdict(list)
+
+    def is_deferred_block(position, block_id):
+        for i, custom_block_types in enumerate(custom_blocks):
+            if block_id in custom_block_types:
+                deferred_blocks[i].append((position, block_id))
+                return True
+        return False
 
     for position, block_id, normal_indices in blocks:
-        if block_id in non_cube_blocks:
-            deferred_blocks.append((position, block_id))
+        if is_deferred_block(position, block_id):
+            assert block_id in non_solid_blocks
             continue
         configuration = normal_indices_as_block_configuration(normal_indices)
         by_configuration[configuration].append((position, block_id))
@@ -133,7 +146,7 @@ def build_block_instances(blocks):
             _blocks = by_configuration[configuration]
             configuration_instance_count_offset.append((len(_blocks), offset))
             for position, block_id in _blocks:
-                assert block_id not in non_cube_blocks, block_id
+                assert block_id not in non_solid_blocks, block_id
                 packed = pack_instance_data(position, block_id)
                 f.write(packed)
                 offset += len(packed)
@@ -141,16 +154,16 @@ def build_block_instances(blocks):
         ######################################################################
         # non-cubes
         ######################################################################
-        nc_offset = offset
-        nc_instance_count = 0
-        for position, block_id in deferred_blocks:
-            if block_id not in non_cube_blocks:
-                continue
-            packed = pack_instance_data(position, block_id)
-            f.write(packed)
-            offset += len(packed)
-            nc_instance_count += 1
-        configuration_instance_count_offset.append((nc_instance_count, nc_offset))
+        for custom_block_ix in range(len(custom_blocks)):
+            nc_offset = offset
+            nc_instance_count = 0
+            for position, block_id in deferred_blocks[custom_block_ix]:
+                assert block_id in non_solid_blocks, block_id
+                packed = pack_instance_data(position, block_id)
+                f.write(packed)
+                offset += len(packed)
+                nc_instance_count += 1
+            configuration_instance_count_offset.append((nc_instance_count, nc_offset))
 
     with open(f"{data_path}.instance.cfg", "wb") as f:
         for instance_count, offset in configuration_instance_count_offset:
