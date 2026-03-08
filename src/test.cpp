@@ -6,6 +6,7 @@
 #include "opengl.h"
 #include "directxmath/directxmath.h"
 #include "test.h"
+#include "font.h"
 
 #include "data.inc"
 
@@ -246,6 +247,8 @@ struct view_state {
 
 view_state view_state;
 
+font::font ter_8x16 = {};
+
 void load()
 {
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
@@ -266,6 +269,14 @@ void load()
   //unsigned int textures_layout = glGetUniformBlockIndex(test_program, "TexturesLayout");
   //glUniformBlockBinding(test_program, textures_layout, 0);
   //printf("textures_layout %d\n", textures_layout);
+
+  //////////////////////////////////////////////////////////////////////
+  // font
+  //////////////////////////////////////////////////////////////////////
+
+  font::load_element_buffer();
+  font::load_shader();
+  ter_8x16 = font::load_font(font::ter_8x16);
 }
 
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
@@ -357,4 +368,6 @@ void draw()
       glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
     }
   }
+
+  font::draw_string(ter_8x16, "test", 10, 10);
 }

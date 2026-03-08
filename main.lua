@@ -58,6 +58,6 @@ function love.run()
       love.graphics.present()
       love.timer.sleep(0.001)
       local fps = love.timer.getFPS( )
-      print(fps)
+      --print(fps)
    end
 end

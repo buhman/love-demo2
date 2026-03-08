@@ -19,7 +19,8 @@ LDFLAGS += $(shell pkg-config --libs glfw3)
 OBJS = \
 	src/gl.o \
 	src/opengl.o \
-	src/test.o
+	src/test.o \
+	src/font.o
 
 all: test.so
 
