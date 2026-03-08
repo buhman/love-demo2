@@ -133,20 +133,17 @@ namespace font {
 
     int i = 0;
     while (s[i] != 0) {
-      char c = s[i];
-      if (c <= 0x20 || c > 0x7f)
-        continue;
+      char c = s[i++];
+      if (!(c <= 0x20 || c > 0x7f)) {
+        XMFLOAT4X4 transform = glyph_transform(font, x, y);
+        glUniformMatrix4fv(location.uniform.transform, 1, GL_FALSE, (float *)&transform);
+        XMFLOAT2 glyph = glyph_coordinate(font, c);
+        glUniform2fv(location.uniform.glyph, 1, (float *)&glyph);
 
-      XMFLOAT4X4 transform = glyph_transform(font, x, y);
-      glUniformMatrix4fv(location.uniform.transform, 1, GL_FALSE, (float *)&transform);
-      XMFLOAT2 glyph = glyph_coordinate(font, c);
-      glUniform2fv(location.uniform.glyph, 1, (float *)&glyph);
-
-      glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
+        glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
+      }
 
       x += font.desc->glyph_width;
-
-      i += 1;
     }
   }
 }

@@ -241,8 +241,10 @@ extern "C" {
 struct view_state {
   XMVECTOR up;
   XMVECTOR eye;
+  XMVECTOR forward;
   XMVECTOR direction;
   float fov;
+  float pitch;
 };
 
 view_state view_state;
@@ -260,9 +262,11 @@ void load()
 
   view_state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
   view_state.eye = XMVectorSet(0, 0, 0, 1);
-  view_state.direction = XMVectorSet(1, 0, 0, 0);
+  view_state.forward = XMVectorSet(1, 0, 0, 0);
+  view_state.direction = view_state.forward;
+  view_state.pitch = 0.0;
 
-  view_state.fov = 1.0;
+  view_state.fov = 1.5;
 
   //load_texture_shader_storage();
 
@@ -279,23 +283,58 @@ void load()
   ter_8x16 = font::load_font(font::ter_8x16);
 }
 
+float _ry = 0.0;
+
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right)
 {
   //view_state.yaw += rx;
   XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
-  XMMATRIX mry = XMMatrixRotationY(ry * -0.035);
-  view_state.direction = XMVector3Transform(view_state.direction, mrz * mry);
 
-  XMVECTOR normal = XMVector3Cross(view_state.direction, view_state.up);
-  view_state.eye += view_state.direction * -ly + normal * lx + view_state.up * (tl - tr);
+  view_state.forward = XMVector3Transform(view_state.forward, mrz);
+  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
 
-  view_state.fov += 0.01 * up + -0.01 * down;
+  view_state.pitch += ry * -0.035;
+  if (view_state.pitch > 1.5f) view_state.pitch = 1.5f;
+  if (view_state.pitch < -1.5f) view_state.pitch = -1.5f;
+
+  XMMATRIX mrn = XMMatrixRotationAxis(normal, view_state.pitch);
+  view_state.direction = XMVector3Transform(view_state.forward, mrn);
+
+  view_state.eye += view_state.forward * -ly + normal * lx + view_state.up * (tl - tr);
+
+  float new_fov = view_state.fov + 0.01 * up + -0.01 * down;
+  if (new_fov > 0.00001f) {
+    view_state.fov = new_fov;
+  }
 }
 
 static inline int popcount(int x)
 {
   return __builtin_popcount(x);
+}
+
+void asdf(char * const buf, char const * const label, char const * const format, float value)
+{
+  const int label_length = strlen(label);
+  memcpy(buf, label, label_length);
+  int len = snprintf(&buf[label_length], 511 - label_length, format, value);
+  buf[label_length + len] = 0;
+}
+
+void draw_hud()
+{
+  char buf[512];
+
+  float y = 10.0f;
+
+  asdf(buf, "fov: ", "%.3f", view_state.fov);
+  font::draw_string(ter_8x16, buf, 10, y);
+  y += ter_8x16.desc->glyph_height;
+
+  asdf(buf, "pitch: ", "%.9f", view_state.pitch);
+  font::draw_string(ter_8x16, buf, 10, y);
+  y += ter_8x16.desc->glyph_height;
 }
 
 void draw()
@@ -368,6 +407,4 @@ void draw()
       glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
     }
   }
-
-  font::draw_string(ter_8x16, "test", 10, 10);
 }

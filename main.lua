@@ -7,6 +7,7 @@ function init()
    ffi.cdef[[
 void load();
 void draw();
+void draw_hud();
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right);
 ]]
@@ -33,6 +34,7 @@ end
 
 local draw = function()
    test.draw()
+   test.draw_hud()
 end
 
 function love.run()

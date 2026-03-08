@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
   void load();
+  void draw_hud();
   void draw();
   void update(float lx, float ly, float rx, float ry, float tl, float tr,
               int up, int down, int left, int right);
