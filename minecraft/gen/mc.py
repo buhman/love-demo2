@@ -3,6 +3,7 @@ import struct
 from pprint import pprint
 from itertools import chain
 from collections import defaultdict
+import functools
 
 import mcregion
 import vec3
@@ -22,52 +23,52 @@ non_solid_blocks = {
     data.BlockID.TALL_GRASS,
     data.BlockID.MUSHROOM_1,
     data.BlockID.MUSHROOM_2,
+    data.BlockID.FLOWER,
+    data.BlockID.ROSE,
+    data.BlockID.SAPLING,
 }
+
+def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
+    if ny > 127 or ny < 0:
+        return False
+    nx, n_chunk_x = wrap_n(nx, chunk_x)
+    nz, n_chunk_z = wrap_n(nz, chunk_z)
+    assert nx <= 15 and nx >= 0
+    assert nz <= 15 and nz >= 0
+    key = (n_chunk_x, n_chunk_z)
+    if key not in level_table:
+        return True
+    n_block_index = mcregion.block_index_from_xyz(nx, ny, nz)
+    n_block_id = level_table[key].blocks[n_block_index]
+
+    has_neighbor = (n_block_id != data.BlockID.AIR) and (n_block_id not in non_solid_blocks)
+    return has_neighbor
 
 def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     block_id = level_table[(chunk_x, chunk_z)].blocks[block_index]
     if block_id == data.BlockID.AIR:
         return
 
-    def neighbor_exists(nx, ny, nz):
-        if ny > 127 or ny < 0:
-            return False
-        nx, n_chunk_x = wrap_n(nx, chunk_x)
-        nz, n_chunk_z = wrap_n(nz, chunk_z)
-        if nx > 15 or nx < 0:
-            return True
-        if nz > 15 or nz < 0:
-            return True
-        n_block_index = mcregion.block_index_from_xyz(nx, ny, nz)
-        key = (n_chunk_x, n_chunk_z)
-        if key not in level_table:
-            return True
-        n_block_id = level_table[key].blocks[n_block_index]
+    xyz = mcregion.xyz_from_block_index(block_index)
 
-        has_neighbor = (n_block_id != data.BlockID.AIR) and (n_block_id not in non_solid_blocks)
-        return has_neighbor
-
-    x, y, z = mcregion.xyz_from_block_index(block_index)
-
-    center_position = vec3.add((x, y, z), (chunk_x * 16, 0, chunk_z * 16))
+    center_position = vec3.add(xyz, (chunk_x * 16, 0, chunk_z * 16))
 
     def find_non_neighbors():
         for i, normal in enumerate(vertex_buffer.normals):
-            neighbor = vec3.add(normal, (x, y, z))
-            if not neighbor_exists(*neighbor):
+            neighbor = vec3.add(normal, xyz)
+            if not neighbor_exists(level_table, chunk_x, chunk_z, *neighbor):
                 yield i
 
     normal_indices = list(find_non_neighbors())
     if block_id in non_solid_blocks or normal_indices:
         yield center_position, block_id, normal_indices
 
-def devoxelize_region(level_table):
-    for chunk_x, chunk_z in level_table.keys():
+def devoxelize_region(level_table, level_table_keys):
+    for chunk_x, chunk_z in level_table_keys:
         for block_index in range(128 * 16 * 16):
             yield from block_neighbors(level_table, chunk_x, chunk_z, block_index)
 
-def build_level_table(mem, locations):
-    level_table = {}
+def build_level_table(level_table, mem, locations):
     for location in locations:
         try:
             level = mcregion.parse_location(mem, location)
@@ -93,6 +94,11 @@ def build_block_configuration_table():
 
 non_cube_blocks = {
     data.BlockID.TALL_GRASS,
+    data.BlockID.MUSHROOM_1,
+    data.BlockID.MUSHROOM_2,
+    data.BlockID.FLOWER,
+    data.BlockID.ROSE,
+    data.BlockID.SAPLING,
 }
 
 def pack_instance_data(position, block_id):
@@ -148,11 +154,11 @@ def build_block_instances(blocks):
 
     with open(f"{data_path}.instance.cfg", "wb") as f:
         for instance_count, offset in configuration_instance_count_offset:
-            print(instance_count, offset)
+            #print(instance_count, offset)
             f.write(struct.pack("<ii", instance_count, offset))
 
-def main(mcr_path, data_path):
-    with open(mcr_path, "rb") as f:
+def level_table_from_path(level_table, path):
+    with open(path, "rb") as f:
         buf = f.read()
     mem = memoryview(buf)
 
@@ -161,13 +167,34 @@ def main(mcr_path, data_path):
     offset, timestamps = mcregion.parse_timestamps(mem, offset)
     assert offset == 0x2000
 
-    level_table = build_level_table(mem, locations)
-    blocks = devoxelize_region(level_table)
+    build_level_table(level_table, mem, locations)
+
+all_paths = [
+    "/home/bilbo/Love2DWorld/region/r.0.0.mcr",
+    "/home/bilbo/Love2DWorld/region/r.-1.-1.mcr",
+    "/home/bilbo/Love2DWorld/region/r.0.-1.mcr",
+    "/home/bilbo/Love2DWorld/region/r.-1.0.mcr",
+]
+
+def main2(level_table, level_table_keys):
+    blocks = devoxelize_region(level_table, level_table_keys)
     build_block_instances(blocks)
 
-    #pprint(list(build_block_configuration_table()))
+def main(mcr_path, data_path):
+    assert mcr_path in all_paths
+    level_table = {}
+    level_table_from_path(level_table, mcr_path)
+    level_table_keys = list(level_table.keys())
+    for path in all_paths:
+        if path == mcr_path:
+            continue
+        level_table_from_path(level_table, path)
+
+    main2(level_table, level_table_keys)
+    #import cProfile
+    #cProfile.runctx("main2(level_table, level_table_keys)", {},
+    #                {"level_table_keys": level_table_keys, "level_table": level_table, "main2": main2})
 
 mcr_path = sys.argv[1]
 data_path = sys.argv[2]
-
 main(mcr_path, data_path)

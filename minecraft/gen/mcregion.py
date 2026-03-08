@@ -217,15 +217,30 @@ def parse_location(mem, location):
     level = level_from_tag(tag)
     return level
 
-def xyz_from_block_index(block_index):
+def _xyz_from_block_index(block_index):
     assert block_index >= 0 and block_index < (128 * 16 * 16)
-    x = int(block_index / (128 * 16))
-    y = int(block_index % 128)
-    z = int(int(block_index / 128) % 16)
+    x = block_index // (128 * 16)
+    y = block_index % 128
+    z = (block_index // 128) % 16
     return x, y, z
 
-def block_index_from_xyz(x, y, z):
+def _block_index_from_xyz(x, y, z):
     assert x >= 0 and x < 16
     assert y >= 0 and y < 128
     assert z >= 0 and z < 16
     return int(y + z * 128 + x * 128 * 16)
+
+xyz_to_block_index = {}
+block_index_to_xyz = {}
+
+for i in range(128 * 16 * 16):
+    xyz = _xyz_from_block_index(i)
+    assert _block_index_from_xyz(*xyz) == i
+    xyz_to_block_index[xyz] = i
+    block_index_to_xyz[i] = xyz
+
+def xyz_from_block_index(block_index):
+    return block_index_to_xyz[block_index]
+
+def block_index_from_xyz(x, y, z):
+    return xyz_to_block_index[(x, y, z)]

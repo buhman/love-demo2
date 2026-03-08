@@ -51,7 +51,7 @@ void main()
 
   if (diffuse_intensity < 0.1)
     diffuse_intensity = 0.1;
-  if (fs_in.BlockID == 31) // tall_grass
+  if (fs_in.BlockID == 31 || fs_in.BlockID == 39 || fs_in.BlockID == 40 || fs_in.BlockID == 37 || fs_in.BlockID == 38 || fs_in.BlockID == 6) // tall_grass
     diffuse_intensity = 1.0;
 
   FragColor = vec4(texture_color.xyz * vec3(diffuse_intensity), 1.0);
