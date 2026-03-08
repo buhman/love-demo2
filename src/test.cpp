@@ -237,6 +237,15 @@ extern "C" {
   void * SDL_GL_GetProcAddress(const char *proc);
 }
 
+struct view_state {
+  XMVECTOR up;
+  XMVECTOR eye;
+  XMVECTOR direction;
+  float fov;
+};
+
+view_state view_state;
+
 void load()
 {
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
@@ -245,6 +254,13 @@ void load()
   load_program();
   load_buffers();
   load_textures();
+
+  view_state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+  view_state.eye = XMVectorSet(0, 0, 0, 1);
+  view_state.direction = XMVectorSet(1, 0, 0, 0);
+
+  view_state.fov = 1.0;
+
   //load_texture_shader_storage();
 
   //unsigned int textures_layout = glGetUniformBlockIndex(test_program, "TexturesLayout");
@@ -252,15 +268,18 @@ void load()
   //printf("textures_layout %d\n", textures_layout);
 }
 
-static float vx = 0.0;
-static float vy = 0.0;
-static float vz = 0.0;
-
-void update(float lx, float ly, float ry)
+void update(float lx, float ly, float rx, float ry, float tl, float tr,
+            int up, int down, int left, int right)
 {
-  vx += 2.5 * lx;
-  vy += -2.5 * ry;
-  vz += -2.5 * ly;
+  //view_state.yaw += rx;
+  XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
+  XMMATRIX mry = XMMatrixRotationY(ry * -0.035);
+  view_state.direction = XMVector3Transform(view_state.direction, mrz * mry);
+
+  XMVECTOR normal = XMVector3Cross(view_state.direction, view_state.up);
+  view_state.eye += view_state.direction * -ly + normal * lx + view_state.up * (tl - tr);
+
+  view_state.fov += 0.01 * up + -0.01 * down;
 }
 
 static inline int popcount(int x)
@@ -270,12 +289,10 @@ static inline int popcount(int x)
 
 void draw()
 {
-  XMVECTOR eye = XMVectorSet(vx + -50.0f, vz + -50.0f, vy + 150.0f, 0.0f);
-  XMVECTOR at = XMVectorSet(vx + 50.0f, vz + 50.0f, vy + 50.0f, 0.0f);
-  XMVECTOR up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  XMMATRIX view = XMMatrixLookAtRH(eye, at, up);
+  XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
+  XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
 
-  float fov_angle_y = XMConvertToRadians(45 * 0.75);
+  float fov_angle_y = XMConvertToRadians(45 * view_state.fov);
   float aspect_ratio = 1.0;
   float near_z = 1.0;
   float far_z = 0.1;

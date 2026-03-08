@@ -7,7 +7,8 @@ function init()
    ffi.cdef[[
 void load();
 void draw();
-void update(float lx, float ly, float ry);
+void update(float lx, float ly, float rx, float ry, float tl, float tr,
+            int up, int down, int left, int right);
 ]]
    test = ffi.load("./test.so")
    test.load()
@@ -18,8 +19,15 @@ local update = function(dt)
    for _, joystick in ipairs(joysticks) do
       local lx = joystick:getGamepadAxis("leftx")
       local ly = joystick:getGamepadAxis("lefty")
+      local rx = joystick:getGamepadAxis("rightx")
       local ry = joystick:getGamepadAxis("righty")
-      test.update(lx, ly, ry)
+      local tl = joystick:getGamepadAxis("triggerleft")
+      local tr = joystick:getGamepadAxis("triggerright")
+      local up = joystick:isGamepadDown("dpup")
+      local down = joystick:isGamepadDown("dpdown")
+      local left = joystick:isGamepadDown("dpleft")
+      local right = joystick:isGamepadDown("dpright")
+      test.update(lx, ly, rx, ry, tl, tr, up, down, left, right)
    end
 end
 
