@@ -11,7 +11,7 @@
 
 #include "data.inc"
 
-struct location {
+struct test_location {
   struct {
     unsigned int position;
     unsigned int normal;
@@ -25,10 +25,16 @@ struct location {
     unsigned int terrain_sampler;
   } uniform;
 };
-
-// state
 static unsigned int test_program;
-static struct location location;
+static test_location test_location;
+
+struct quad_location {
+  struct {
+    unsigned int texture_sampler;
+  } uniform;
+};
+static unsigned int quad_program;
+static quad_location quad_location;
 
 struct char_tpl {
   const char * vtx;
@@ -63,32 +69,66 @@ struct instance_cfg {
 
 static instance_cfg instance_cfg[region_count];
 
-void load_program()
+static unsigned int empty_vertex_array_object = -1;
+static unsigned int quad_index_buffer = -1;
+
+void load_quad_index_buffer()
+{
+  uint8_t const data[] = {
+    1, 0, 2, 3,
+  };
+  int const data_size = (sizeof (data));
+
+  glGenBuffers(1, &quad_index_buffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+  glGenVertexArrays(1, &empty_vertex_array_object);
+}
+
+void load_test_program()
 {
   unsigned int program = compile_from_files("shader/test.vert",
-                                            NULL, //"shader/test.geom",
+                                            NULL,
                                             "shader/test.frag");
 
-  location.attrib.position = glGetAttribLocation(program, "Position");
-  location.attrib.normal = glGetAttribLocation(program, "Normal");
-  location.attrib.texture = glGetAttribLocation(program, "Texture");
+  test_location.attrib.position = glGetAttribLocation(program, "Position");
+  test_location.attrib.normal = glGetAttribLocation(program, "Normal");
+  test_location.attrib.texture = glGetAttribLocation(program, "Texture");
 
-  location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
-  location.attrib.block_id = glGetAttribLocation(program, "BlockID");
-  printf("attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n\n",
-         location.attrib.position,
-         location.attrib.normal,
-         location.attrib.texture,
-         location.attrib.block_position,
-         location.attrib.block_id);
+  test_location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
+  test_location.attrib.block_id = glGetAttribLocation(program, "BlockID");
+  printf("test program:\n");
+  printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n",
+         test_location.attrib.position,
+         test_location.attrib.normal,
+         test_location.attrib.texture,
+         test_location.attrib.block_position,
+         test_location.attrib.block_id);
 
-  location.uniform.transform = glGetUniformLocation(program, "Transform");
-  location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
-  printf("uniforms:\n  transform %u\n  terrain_sampler %u\n",
-         location.uniform.transform,
-         location.uniform.terrain_sampler);
+  test_location.uniform.transform = glGetUniformLocation(program, "Transform");
+  test_location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
+  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n",
+         test_location.uniform.transform,
+         test_location.uniform.terrain_sampler);
 
   test_program = program;
+}
+
+void load_quad_program()
+{
+  unsigned int program = compile_from_files("shader/quad.vert",
+                                            NULL,
+                                            "shader/quad.frag");
+
+  quad_location.uniform.texture_sampler = glGetUniformLocation(program, "TextureSampler");
+  printf("quad program:\n");
+  printf(" uniforms:\n  texture_sampler %u\n",
+         quad_location.uniform.texture_sampler);
+
+  quad_program = program;
 }
 
 void load_per_instance_vertex_buffer(int i)
@@ -106,6 +146,8 @@ void load_per_instance_vertex_buffer(int i)
 
 void load_per_vertex_buffer()
 {
+  glGenBuffers(1, &per_vertex_buffer);
+
   int vertex_buffer_data_size;
   void * vertex_buffer_data = read_file("minecraft/per_vertex.vtx", &vertex_buffer_data_size);
 
@@ -119,6 +161,8 @@ void load_per_vertex_buffer()
 
 void load_index_buffer()
 {
+  glGenBuffers(1, &index_buffer);
+
   int index_buffer_data_size;
   void * index_buffer_data = read_file("minecraft/configuration.idx", &index_buffer_data_size);
 
@@ -130,7 +174,7 @@ void load_index_buffer()
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void load_vertex_attributes()
+void load_test_vertex_attributes()
 {
   glGenVertexArrays(1, &vertex_array_object);
   glBindVertexArray(vertex_array_object);
@@ -138,25 +182,25 @@ void load_vertex_attributes()
   glVertexBindingDivisor(0, 0);
   glVertexBindingDivisor(1, 1);
 
-  glEnableVertexAttribArray(location.attrib.position);
-  glVertexAttribFormat(location.attrib.position, 3, GL_HALF_FLOAT, GL_FALSE, 0);
-  glVertexAttribBinding(location.attrib.position, 0);
+  glEnableVertexAttribArray(test_location.attrib.position);
+  glVertexAttribFormat(test_location.attrib.position, 3, GL_HALF_FLOAT, GL_FALSE, 0);
+  glVertexAttribBinding(test_location.attrib.position, 0);
 
-  glEnableVertexAttribArray(location.attrib.normal);
-  glVertexAttribFormat(location.attrib.normal, 3, GL_HALF_FLOAT, GL_FALSE, 6);
-  glVertexAttribBinding(location.attrib.normal, 0);
+  glEnableVertexAttribArray(test_location.attrib.normal);
+  glVertexAttribFormat(test_location.attrib.normal, 3, GL_HALF_FLOAT, GL_FALSE, 6);
+  glVertexAttribBinding(test_location.attrib.normal, 0);
 
-  glEnableVertexAttribArray(location.attrib.texture);
-  glVertexAttribFormat(location.attrib.texture, 2, GL_HALF_FLOAT, GL_FALSE, 12);
-  glVertexAttribBinding(location.attrib.texture, 0);
+  glEnableVertexAttribArray(test_location.attrib.texture);
+  glVertexAttribFormat(test_location.attrib.texture, 2, GL_HALF_FLOAT, GL_FALSE, 12);
+  glVertexAttribBinding(test_location.attrib.texture, 0);
 
-  glEnableVertexAttribArray(location.attrib.block_position);
-  glVertexAttribFormat(location.attrib.block_position, 3, GL_SHORT, GL_FALSE, 0);
-  glVertexAttribBinding(location.attrib.block_position, 1);
+  glEnableVertexAttribArray(test_location.attrib.block_position);
+  glVertexAttribFormat(test_location.attrib.block_position, 3, GL_SHORT, GL_FALSE, 0);
+  glVertexAttribBinding(test_location.attrib.block_position, 1);
 
-  glEnableVertexAttribArray(location.attrib.block_id);
-  glVertexAttribFormat(location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
-  glVertexAttribBinding(location.attrib.block_id, 1);
+  glEnableVertexAttribArray(test_location.attrib.block_id);
+  glVertexAttribFormat(test_location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
+  glVertexAttribBinding(test_location.attrib.block_id, 1);
 
   glBindVertexArray(0);
 }
@@ -170,25 +214,97 @@ void load_instance_cfg(int i)
   memcpy(&instance_cfg[i], data, data_size);
 }
 
+struct target_name {
+  enum {
+    POSITION = 0,
+    NORMAL = 1,
+    COLOR = 2,
+  };
+};
+
+template <int render_target_count>
+struct geometry_buffer {
+  unsigned int framebuffer;
+  unsigned int target[render_target_count]; // textures
+  unsigned int renderbuffer;
+  int initialized;
+  int width;
+  int height;
+};
+
+struct target_type {
+  GLint internal_format;
+  GLenum attachment;
+};
+
+static geometry_buffer<3> geometry_buffer_pnc = {};
+static target_type const geometry_buffer_pnc_types[3] = {
+  [target_name::POSITION] = { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
+  [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
+  [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
+};
+
+template <int render_target_count>
+void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer, target_type const * const types)
+{
+  int width = g_window_width;
+  int height = g_window_height;
+
+  if ((geometry_buffer.initialized == 1) && (width == geometry_buffer.width) && (height == geometry_buffer.height)) {
+    return;
+  }
+
+  if (geometry_buffer.initialized) {
+    glDeleteFramebuffers(1, &geometry_buffer.framebuffer);
+    glDeleteTextures(render_target_count, geometry_buffer.target);
+    glDeleteRenderbuffers(1, &geometry_buffer.renderbuffer);
+  }
+  glGenFramebuffers(1, &geometry_buffer.framebuffer);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer.framebuffer);
+
+  glGenTextures(render_target_count, geometry_buffer.target);
+  for (int i = 0; i < render_target_count; i++) {
+    glBindTexture(GL_TEXTURE_2D, geometry_buffer.target[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, types[i].internal_format, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, types[i].attachment, GL_TEXTURE_2D, geometry_buffer.target[i], 0);
+  }
+  static_assert(render_target_count == 3);
+  GLenum attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+  glDrawBuffers(3, attachments); // bound to GL_DRAW_FRAMEBUFFER
+
+  glGenRenderbuffers(1, &geometry_buffer.renderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, geometry_buffer.renderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, geometry_buffer.renderbuffer);
+
+  assert(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+  geometry_buffer.initialized = 1;
+  geometry_buffer.width = width;
+  geometry_buffer.height = height;
+}
+
 void load_buffers()
 {
-  load_vertex_attributes();
+  load_test_vertex_attributes();
 
   // per-vertex buffer
-  glGenBuffers(1, &per_vertex_buffer);
   load_per_vertex_buffer();
 
   // per-instance buffer
   glGenBuffers(region_count, per_instance_vertex_buffers);
-
   for (int i = 0; i < region_count; i++) {
     load_per_instance_vertex_buffer(i);
     load_instance_cfg(i);
   }
 
   // index buffer
-
-  glGenBuffers(1, &index_buffer);
   load_index_buffer();
 }
 
@@ -217,22 +333,24 @@ void load_textures()
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static unsigned int textures_ubo;
+static unsigned int light_uniform_buffer;
 
-void load_texture_shader_storage()
+void load_light_uniform_buffer()
 {
   unsigned int buffer;
   glGenBuffers(1, &buffer);
   glBindBuffer(GL_UNIFORM_BUFFER, buffer);
 
-  int textures_data_size;
-  void * textures_data = read_file("minecraft/block_id_to_texture_id.data", &textures_data_size);
-  assert(textures_data != NULL);
+  int data_size;
+  void * data = read_file("minecraft/global.lights.vtx", &data_size);
+  assert(data != NULL);
 
-  glBufferData(GL_UNIFORM_BUFFER, textures_data_size, textures_data, GL_STATIC_DRAW);
-  free(textures_data);
+  glBufferData(GL_UNIFORM_BUFFER, data_size, data, GL_STATIC_DRAW);
+  free(data);
 
-  textures_ubo = buffer;
+  light_uniform_buffer = buffer;
+
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 extern "C" {
@@ -261,7 +379,7 @@ void load(const char * source_path)
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
   gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
-  load_program();
+  load_test_program();
   load_buffers();
   load_textures();
 
@@ -273,21 +391,27 @@ void load(const char * source_path)
 
   view_state.fov = 1.5;
 
-  //load_texture_shader_storage();
+  load_light_uniform_buffer();
 
-  //unsigned int textures_layout = glGetUniformBlockIndex(test_program, "TexturesLayout");
-  //glUniformBlockBinding(test_program, textures_layout, 0);
+  //location.uniform.light_block = glGetUniformBlockIndex(test_program, "TexturesLayout");
+  //glUniformBlockBinding(ProgramName, location.uniform.light_block, bindingPoint);
   //printf("textures_layout %d\n", textures_layout);
 
   //////////////////////////////////////////////////////////////////////
   // font
   //////////////////////////////////////////////////////////////////////
 
-  font::load_element_buffer();
   font::load_shader();
 
   terminus_fonts = (font::font *)malloc((sizeof (font::font)) * font::terminus_length);
   font::load_fonts(terminus_fonts, font::terminus, font::terminus_length);
+
+  //////////////////////////////////////////////////////////////////////
+  // quad
+  //////////////////////////////////////////////////////////////////////
+
+  load_quad_program();
+  load_quad_index_buffer();
 }
 
 float _ry = 0.0;
@@ -339,6 +463,8 @@ void draw_hud()
   int font_ix = font::best_font(font::terminus, font::terminus_length);
   font::font const& ter_best = terminus_fonts[font_ix];
 
+  font::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
+
   labeled_value<float>(buf, "fov: ", "%.3f", view_state.fov);
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
@@ -352,8 +478,11 @@ void draw_hud()
   y += ter_best.desc->glyph_height;
 }
 
-void draw()
+void draw_minecraft()
 {
+  // possibly re-initialize geometry buffer if window width/height changes
+  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
+
   XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
   XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
 
@@ -364,23 +493,19 @@ void draw()
   XMMATRIX projection = XMMatrixPerspectiveFovRH(fov_angle_y, aspect_ratio, near_z, far_z);
   XMMATRIX transform = view * projection;
 
-  glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
-  glClearDepth(-1.0f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   glUseProgram(test_program);
 
+  glBlendFunc(GL_ONE, GL_ZERO);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_GREATER);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  glUniformMatrix4fv(location.uniform.transform, 1, false, (float *)&transform);
-  glUniform1i(location.uniform.terrain_sampler, 0);
+  glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&transform);
+  glUniform1i(test_location.uniform.terrain_sampler, 0);
 
-  //glBindBuffer(GL_UNIFORM_BUFFER, textures_ubo);
-  //glBindBufferBase(GL_UNIFORM_BUFFER, 0, textures_ubo);
+  //glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.light_block, light_uniform_buffer);
 
   //glEnable(GL_CULL_FACE);
   //glCullFace(GL_FRONT);
@@ -422,4 +547,37 @@ void draw()
       glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
     }
   }
+}
+
+void draw_quad()
+{
+  glUseProgram(quad_program);
+  glDepthFunc(GL_ALWAYS);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[1]);
+
+  glUniform1i(quad_location.uniform.texture_sampler, 0);
+
+  glBindVertexArray(empty_vertex_array_object);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
+}
+
+void draw()
+{
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearDepth(-1.0f);
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  draw_minecraft();
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  draw_quad();
+  //draw_hud();
 }

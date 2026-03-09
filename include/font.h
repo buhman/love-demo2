@@ -59,10 +59,10 @@ namespace font {
     } cell;
   };
 
-  void load_element_buffer();
   void load_shader();
   font load_font(font_desc const& desc);
   void load_fonts(font * const fonts, font_desc const * const descs, int length);
   int best_font(font_desc const * const descs, int length);
+  void draw_start(font const& font, unsigned int vertex_array_object, unsigned int index_buffer);
   void draw_string(font const& font, char const * const s, int x, int y);
 }

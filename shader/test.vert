@@ -9,6 +9,7 @@ in vec3 BlockPosition;
 in float BlockID;
 
 out VS_OUT {
+  vec3 Position;
   vec3 Normal;
   vec2 Texture;
   flat int BlockID;
@@ -18,9 +19,12 @@ uniform mat4 Transform;
 
 void main()
 {
+  vec3 position = Position + BlockPosition; // world coordinates
+
+  vs_out.Position = position;
   vs_out.Normal = Normal.xzy;
   vs_out.Texture = Texture;
   vs_out.BlockID = int(BlockID);
 
-  gl_Position = Transform * vec4((Position + BlockPosition).xzy, 1.0);
+  gl_Position = Transform * vec4(position.xzy, 1.0);
 }

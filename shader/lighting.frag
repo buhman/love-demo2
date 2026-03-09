@@ -1,15 +1,12 @@
 #version 330 core
 
 in VS_OUT {
-  vec3 Position; // world coordinates
   vec3 Normal;
   vec2 Texture;
   flat int BlockID;
 } fs_in;
 
-layout (location = 0) out vec3 Position;
-layout (location = 1) out vec3 Normal;
-layout (location = 2) out vec3 Color;
+out vec4 FragColor;
 
 uniform sampler2D TerrainSampler;
 
@@ -34,6 +31,9 @@ int Textures[256] = int[256](
 
 void main()
 {
+  vec3 light_direction = normalize(vec3(-1, -0.5, 0.5));
+  float diffuse_intensity = max(dot(normalize(fs_in.Normal), light_direction), 0.0);
+
   int terrain_ix = int(Textures[int(fs_in.BlockID)]);
   int terrain_x = terrain_ix % 16;
   int terrain_y = terrain_ix / 16;
@@ -49,7 +49,10 @@ void main()
   if (fs_in.BlockID == 18 || fs_in.BlockID == 31) // leaves
     texture_color.xyz *= vec3(0.125, 0.494, 0.027);
 
-  Position = fs_in.Position;
-  Normal = normalize(fs_in.Normal);
-  Color = texture_color.xyz;
+  if (diffuse_intensity < 0.1)
+    diffuse_intensity = 0.1;
+  if (fs_in.BlockID == 31 || fs_in.BlockID == 39 || fs_in.BlockID == 40 || fs_in.BlockID == 37 || fs_in.BlockID == 38 || fs_in.BlockID == 6) // tall_grass
+    diffuse_intensity = 1.0;
+
+  FragColor = vec4(texture_color.xyz * vec3(diffuse_intensity), 1.0);
 }

@@ -7,3 +7,4 @@ main
 *.so
 *.dylib
 __pycache__
+minecraft/region*.lights.vtx

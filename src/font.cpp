@@ -24,25 +24,6 @@ namespace font {
 
   static unsigned int font_program = -1;
 
-  static unsigned int vertex_array_object = -1;
-  static unsigned int index_buffer = -1;
-
-  void load_element_buffer()
-  {
-    uint8_t const data[] = {
-      1, 0, 2, 3,
-    };
-    int const data_size = (sizeof (data));
-
-    glGenBuffers(1, &index_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    glGenVertexArrays(1, &vertex_array_object);
-  }
-
   void load_shader()
   {
     unsigned int program = compile_from_files("shader/font.vert",
@@ -53,7 +34,8 @@ namespace font {
     location.uniform.texture_sampler = glGetUniformLocation(program, "TextureSampler");
     location.uniform.cell = glGetUniformLocation(program, "Cell");
     location.uniform.glyph = glGetUniformLocation(program, "Glyph");
-    printf("font uniforms:\n  transform %u\n  texture_sampler %u\n  cell %u\n  glyph %u\n",
+    printf("font program:\n");
+    printf(" uniforms:\n  transform %u\n  texture_sampler %u\n  cell %u\n  glyph %u\n",
            location.uniform.transform,
            location.uniform.texture_sampler,
            location.uniform.cell,
@@ -150,7 +132,7 @@ namespace font {
     return transformf;
   }
 
-  void draw_string(font const& font, char const * const s, int x, int y)
+  void draw_start(font const& font, unsigned int vertex_array_object, unsigned int index_buffer)
   {
     glUseProgram(font_program);
     glDepthFunc(GL_ALWAYS);
@@ -163,7 +145,10 @@ namespace font {
 
     glBindVertexArray(vertex_array_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+  }
 
+  void draw_string(font const& font, char const * const s, int x, int y)
+  {
     int i = 0;
     while (s[i] != 0) {
       char c = s[i++];

@@ -114,10 +114,16 @@ def pack_instance_data(position, block_id):
                          0)
     return packed
 
+def pack_light_data(position, block_id):
+    packed = struct.pack("<iiii", position[0], position[1], position[2], block_id)
+    return packed
+
 def build_block_instances(blocks):
     by_configuration = defaultdict(list)
 
     deferred_blocks = defaultdict(list)
+
+    light_sources = []
 
     def is_deferred_block(position, block_id):
         for i, custom_block_types in enumerate(custom_blocks):
@@ -127,6 +133,8 @@ def build_block_instances(blocks):
         return False
 
     for position, block_id, normal_indices in blocks:
+        if block_id == data.BlockID.TORCH:
+            light_sources.append((position, block_id))
         if is_deferred_block(position, block_id):
             assert block_id in non_solid_blocks
             continue
@@ -169,6 +177,11 @@ def build_block_instances(blocks):
         for instance_count, offset in configuration_instance_count_offset:
             #print(instance_count, offset)
             f.write(struct.pack("<ii", instance_count, offset))
+
+    with open(f"{data_path}.lights.vtx", "wb") as f:
+        for position, block_id in light_sources:
+            packed = pack_light_data(position, block_id)
+            f.write(packed)
 
 def level_table_from_path(level_table, path):
     with open(path, "rb") as f:
