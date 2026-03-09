@@ -7,6 +7,7 @@
 #include "opengl.h"
 
 #include "font.h"
+#include "window.h"
 
 namespace font {
 
@@ -94,6 +95,38 @@ namespace font {
     };
   }
 
+  static inline int min(int a, int b)
+  {
+    return a < b ? a : b;
+  }
+
+  int best_font(font_desc const * const descs, int length)
+  {
+    int dimension = min(g_window_width, g_window_height);
+    int ideal_height = (16 * dimension) / 1024;
+    //printf("ideal_height: %d\n", ideal_height);
+    int nearest = dimension;
+    int nearest_ix = -1;
+    for (int i = 0; i < length; i++) {
+      font_desc const& desc = descs[i];
+      int distance = abs(desc.glyph_height - ideal_height);
+      if (distance < nearest) {
+        nearest = distance;
+        nearest_ix = i;
+      }
+    }
+    assert(nearest_ix != -1);
+    //printf("selected %d\n", descs[nearest_ix].glyph_height);
+    return nearest_ix;
+  }
+
+  void load_fonts(font * const fonts, font_desc const * const descs, int length)
+  {
+    for (int i = 0; i < length; i++) {
+      fonts[i] = load_font(descs[i]);
+    }
+  }
+
   inline static XMFLOAT2 glyph_coordinate(font const& font, int ord)
   {
     int c = ord - 32;
@@ -110,7 +143,7 @@ namespace font {
     XMMATRIX transform =
       XMMatrixScaling(font.desc->glyph_width, font.desc->glyph_height, 0)
       * XMMatrixTranslation(x, -y, 0)
-      * XMMatrixScaling(2.0f / 1024.0f, 2.0f / 1024.0f, 0)
+      * XMMatrixScaling(2.0f / g_window_width, 2.0f / g_window_height, 0)
       * XMMatrixTranslation(-1, 1, 0);
     XMFLOAT4X4 transformf;
     XMStoreFloat4x4(&transformf, transform);

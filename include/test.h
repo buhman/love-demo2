@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-  void load();
+  void load(const char * source_path);
   void draw_hud();
   void draw();
   void update(float lx, float ly, float rx, float ry, float tl, float tr,

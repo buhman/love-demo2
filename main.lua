@@ -5,15 +5,17 @@ function init()
    joysticks = love.joystick.getJoysticks()
 
    ffi.cdef[[
-void load();
+void load(const char * source_path);
+void update_window(int width, int height);
 void draw();
 void draw_hud();
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right);
 ]]
-   test = ffi.load("./test.so")
-   test.load()
-
+   local source_path = love.filesystem.getSource()
+   test = ffi.load(source_path .. "/test.so")
+   test.load(source_path)
+   print(love.filesystem.getWorkingDirectory())
 end
 
 local update = function(dt)
@@ -51,6 +53,12 @@ function love.run()
             end
          end
       end
+
+      local width
+      local height
+      local flags
+      width, height, flags = love.window.getMode()
+      test.update_window(width, height)
 
       local dt = love.timer.step()
       update(dt)

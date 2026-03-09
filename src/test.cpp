@@ -7,6 +7,7 @@
 #include "directxmath/directxmath.h"
 #include "test.h"
 #include "font.h"
+#include "window.h"
 
 #include "data.inc"
 
@@ -249,10 +250,14 @@ struct view_state {
 
 view_state view_state;
 
-font::font ter_8x16 = {};
+font::font * terminus_fonts;
 
-void load()
+void load(const char * source_path)
 {
+  g_source_path_length = strlen(source_path);
+  assert(source_path[g_source_path_length - 1] != '/');
+  g_source_path = source_path;
+
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
   gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
@@ -280,7 +285,9 @@ void load()
 
   font::load_element_buffer();
   font::load_shader();
-  ter_8x16 = font::load_font(font::ter_8x16);
+
+  terminus_fonts = (font::font *)malloc((sizeof (font::font)) * font::terminus_length);
+  font::load_fonts(terminus_fonts, font::terminus, font::terminus_length);
 }
 
 float _ry = 0.0;
@@ -314,7 +321,8 @@ static inline int popcount(int x)
   return __builtin_popcount(x);
 }
 
-void asdf(char * const buf, char const * const label, char const * const format, float value)
+template <typename T>
+void labeled_value(char * const buf, char const * const label, char const * const format, T value)
 {
   const int label_length = strlen(label);
   memcpy(buf, label, label_length);
@@ -328,13 +336,20 @@ void draw_hud()
 
   float y = 10.0f;
 
-  asdf(buf, "fov: ", "%.3f", view_state.fov);
-  font::draw_string(ter_8x16, buf, 10, y);
-  y += ter_8x16.desc->glyph_height;
+  int font_ix = font::best_font(font::terminus, font::terminus_length);
+  font::font const& ter_best = terminus_fonts[font_ix];
 
-  asdf(buf, "pitch: ", "%.9f", view_state.pitch);
-  font::draw_string(ter_8x16, buf, 10, y);
-  y += ter_8x16.desc->glyph_height;
+  labeled_value<float>(buf, "fov: ", "%.3f", view_state.fov);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+
+  labeled_value<float>(buf, "pitch: ", "%.9f", view_state.pitch);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+
+  labeled_value<int>(buf, "font_height: ", "%d", ter_best.desc->glyph_height);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
 }
 
 void draw()
@@ -343,7 +358,7 @@ void draw()
   XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
 
   float fov_angle_y = XMConvertToRadians(45 * view_state.fov);
-  float aspect_ratio = 1.0;
+  float aspect_ratio = g_window_width / g_window_height;
   float near_z = 1.0;
   float far_z = 0.1;
   XMMATRIX projection = XMMatrixPerspectiveFovRH(fov_angle_y, aspect_ratio, near_z, far_z);

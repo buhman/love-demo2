@@ -20,7 +20,8 @@ OBJS = \
 	src/gl.o \
 	src/opengl.o \
 	src/test.o \
-	src/font.o
+	src/font.o \
+	src/window.o
 
 all: test.so
 
