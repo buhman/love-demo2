@@ -9,7 +9,8 @@ void load(const char * source_path);
 void update_window(int width, int height);
 void draw();
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
-            int up, int down, int left, int right);
+            int up, int down, int left, int right,
+            int a, int b, int x, int y);
 ]]
    local source_path = love.filesystem.getSource()
    test = ffi.load(source_path .. "/test.so")
@@ -29,7 +30,11 @@ local update = function(dt)
       local down = joystick:isGamepadDown("dpdown")
       local left = joystick:isGamepadDown("dpleft")
       local right = joystick:isGamepadDown("dpright")
-      test.update(lx, ly, rx, ry, tl, tr, up, down, left, right)
+      local a = joystick:isGamepadDown("a")
+      local b = joystick:isGamepadDown("b")
+      local x = joystick:isGamepadDown("x")
+      local y = joystick:isGamepadDown("y")
+      test.update(lx, ly, rx, ry, tl, tr, up, down, left, right, a, b, x, y)
    end
 end
 

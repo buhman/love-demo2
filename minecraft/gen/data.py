@@ -118,9 +118,9 @@ class BlockID:
     CLOTH_51 = 114
     CLOTH_61 = 115
 
-    INFO_UPDATEGAME1 = 248
-    INFO_UPDATEGAME2 = 249
-    LEAVES_CARRIED = 254
+    # modded
+    YELLOW_COBBLE = 128
+    MARBLE_YELLOW = 248
 
 class Texture:
     GRASS_TOP = 0
@@ -272,6 +272,10 @@ class Texture:
 
     LAVA_PLACEHOLDER = 255
 
+    # modded
+    YELLOW_COBBLE = 213
+    MARBLE_YELLOW = 214
+
 @dataclass
 class Tile:
     block_id: BlockID
@@ -299,6 +303,7 @@ tiles = [
     Tile(BlockID.ORE_LAPIS, Texture.ORE_LAPIS),
     Tile(BlockID.BLOCK_LAPIS, Texture.LAPIS),
     Tile(BlockID.SANDSTONE, Texture.SANDSTONE_SIDE),
+    Tile(BlockID.CLOTH, Texture.CLOTH_64), # wool, colored
     Tile(BlockID.FLOWER, Texture.FLOWER),
     Tile(BlockID.ROSE, Texture.ROSE),
     Tile(BlockID.MUSHROOM_1, Texture.MUSHROOM_BROWN),
@@ -332,7 +337,7 @@ tiles = [
     Tile(BlockID.FENCE, Texture.PLANKS),
     Tile(BlockID.INVISIBLE, Texture.STONE),
     Tile(BlockID.WOOD, Texture.PLANKS),
-    Tile(BlockID.LEAVES_CARRIED, Texture.LEAVES_TRANSPARENT), # fixme
+    #Tile(BlockID.LEAVES_CARRIED, Texture.LEAVES_TRANSPARENT), # fixme
     Tile(BlockID.FIRE, Texture.FIRE1),
     Tile(BlockID.SAPLING, Texture.SAPLING),
     Tile(BlockID.SPONGE, Texture.SPONGE),
@@ -346,6 +351,10 @@ tiles = [
     Tile(BlockID.COBWEB, Texture.COBWEB),
     Tile(BlockID.WORKBENCH, Texture.WORKBENCH_TOP), # fixme
     Tile(BlockID.WHEAT, Texture.WHEAT_0),
+
+    # modded blocks
+    Tile(BlockID.YELLOW_COBBLE, Texture.YELLOW_COBBLE),
+    Tile(BlockID.MARBLE_YELLOW, Texture.MARBLE_YELLOW),
 ]
 
 tiles_by_id = {

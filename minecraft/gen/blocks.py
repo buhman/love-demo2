@@ -1,15 +1,13 @@
 import struct
+import data
+import sys
 
-unk = 185
+unk = 253
 
-lookup = {
-    k: v for k, v, _ in mapping
-}
-
-with open("block_id_to_texture_id.data", "wb") as f:
+with open(sys.argv[1], "wb") as f:
     for i in range(256):
-        value = lookup.get(i, unk)
+        if i in data.tiles_by_id:
+            value = data.tiles_by_id[i].texture
+        else:
+            value = unk
         f.write(struct.pack("<i", value))
-        print(str(value).rjust(3), end=', ')
-        if i % 16 == 15:
-            print()

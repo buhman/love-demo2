@@ -62,6 +62,9 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     if block_id == data.BlockID.AIR:
         return
 
+    block_data = level_table[(chunk_x, chunk_z)].data[block_index // 2]
+    block_data = (block_data >> (1 - (block_index % 2)) * 4) & 0xf
+
     xyz = mcregion.xyz_from_block_index(block_index)
 
     center_position = vec3.add(xyz, (chunk_x * 16, 0, chunk_z * 16))
@@ -74,7 +77,7 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
 
     normal_indices = list(find_non_neighbors())
     if block_id in non_solid_blocks or normal_indices:
-        yield center_position, block_id, normal_indices
+        yield center_position, block_id, block_data, normal_indices
 
 def devoxelize_region(level_table, level_table_keys):
     for chunk_x, chunk_z in level_table_keys:
@@ -107,15 +110,15 @@ def build_block_configuration_table():
                 indices.extend(vertex_buffer.faces_by_normal[vertex_buffer.normals[j]])
         yield indices
 
-def pack_instance_data(position, block_id):
+def pack_instance_data(position, block_id, block_data):
     packed = struct.pack("<hhhBB",
                          position[0], position[1], position[2],
                          block_id,
-                         0)
+                         block_data)
     return packed
 
 def pack_light_data(position, block_id):
-    packed = struct.pack("<iiii", position[0], position[1], position[2], block_id)
+    packed = struct.pack("<ffff", position[0], position[1], position[2], block_id)
     return packed
 
 def build_block_instances(blocks):
@@ -125,21 +128,21 @@ def build_block_instances(blocks):
 
     light_sources = []
 
-    def is_deferred_block(position, block_id):
+    def is_deferred_block(position, block_id, block_data):
         for i, custom_block_types in enumerate(custom_blocks):
             if block_id in custom_block_types:
-                deferred_blocks[i].append((position, block_id))
+                deferred_blocks[i].append((position, block_id, block_data))
                 return True
         return False
 
-    for position, block_id, normal_indices in blocks:
+    for position, block_id, block_data, normal_indices in blocks:
         if block_id == data.BlockID.TORCH:
             light_sources.append((position, block_id))
-        if is_deferred_block(position, block_id):
+        if is_deferred_block(position, block_id, block_data):
             assert block_id in non_solid_blocks
             continue
         configuration = normal_indices_as_block_configuration(normal_indices)
-        by_configuration[configuration].append((position, block_id))
+        by_configuration[configuration].append((position, block_id, block_data))
 
     offset = 0
     configuration_instance_count_offset = []
@@ -153,9 +156,9 @@ def build_block_instances(blocks):
                 continue
             _blocks = by_configuration[configuration]
             configuration_instance_count_offset.append((len(_blocks), offset))
-            for position, block_id in _blocks:
+            for position, block_id, block_data in _blocks:
                 assert block_id not in non_solid_blocks, block_id
-                packed = pack_instance_data(position, block_id)
+                packed = pack_instance_data(position, block_id, block_data)
                 f.write(packed)
                 offset += len(packed)
 
@@ -165,9 +168,9 @@ def build_block_instances(blocks):
         for custom_block_ix in range(len(custom_blocks)):
             nc_offset = offset
             nc_instance_count = 0
-            for position, block_id in deferred_blocks[custom_block_ix]:
+            for position, block_id, block_data in deferred_blocks[custom_block_ix]:
                 assert block_id in non_solid_blocks, block_id
-                packed = pack_instance_data(position, block_id)
+                packed = pack_instance_data(position, block_id, block_data)
                 f.write(packed)
                 offset += len(packed)
                 nc_instance_count += 1

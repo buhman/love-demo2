@@ -1,58 +1,40 @@
 #version 330 core
 
-in VS_OUT {
-  vec3 Normal;
-  vec2 Texture;
-  flat int BlockID;
-} fs_in;
+uniform sampler2D PositionSampler;
+uniform sampler2D NormalSampler;
+uniform sampler2D ColorSampler;
 
-out vec4 FragColor;
+uniform float Linear;
+uniform float Quadratic;
+uniform vec3 Eye;
 
-uniform sampler2D TerrainSampler;
+layout (location = 0) out vec4 Color;
 
-int Textures[256] = int[256](
-  185,   1,   0,   2,  16,   4,  15,  17, 205, 205, 237, 237,  18,  19,  32,  33,
-   34,  20,  52,  48,  49, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,  39,
-  185, 185, 185,  64, 185,  13,  12,  29,  28,  39,  38,   5,   5,   7,   8,  35,
-   36,  37,  80,  31,  65,   4,  27,  84,  50,  40,  43,  88,  87,  44,  61, 185,
-   81,  83, 128,  16, 185,  96,   6,  82,   6,  51,  51, 115,  99, 185,  66,  67,
-   66,  70,  72,  73,  74,   4, 102, 103, 104, 105,  14, 102, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185,
-  185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185, 185
-);
+in vec4 PixelTexture;
+
+layout (std140) uniform Lights
+{
+  vec4 light[256];
+};
 
 void main()
 {
-  vec3 light_direction = normalize(vec3(-1, -0.5, 0.5));
-  float diffuse_intensity = max(dot(normalize(fs_in.Normal), light_direction), 0.0);
+  vec4 position = texture(PositionSampler, PixelTexture.xy);
+  vec4 normal = texture(NormalSampler, PixelTexture.xy);
+  vec4 color = texture(ColorSampler, PixelTexture.xy);
 
-  int terrain_ix = int(Textures[int(fs_in.BlockID)]);
-  int terrain_x = terrain_ix % 16;
-  int terrain_y = terrain_ix / 16;
-  ivec2 coord = ivec2(terrain_x, terrain_y) * 16;
-  coord += ivec2(fs_in.Texture.xy * 16.0);
+  vec3 out_color = color.xyz * 0.1;
+  for (int i = 0; i < 82; i++) {
+    vec3 light_position = light[i].xzy;
+    float light_distance = length(light_position - position.xyz);
+    vec3 light_direction = normalize(light_position - position.xyz);
+    float diffuse = max(dot(normal.xyz, light_direction), 0.0);
+    //float attenuation = 1.0 / (1.0 + Linear * light_distance + Quadratic * light_distance * light_distance);
 
-  vec4 texture_color = texelFetch(TerrainSampler, coord, 0);
-  if (texture_color.w != 1.0) {
-    discard;
-    return;
+    float attenuation = 1.0 / (1.0 + Quadratic * light_distance * light_distance);
+    out_color += color.xyz * attenuation * diffuse;
+    //out_color = vec3(diffuse);
   }
 
-  if (fs_in.BlockID == 18 || fs_in.BlockID == 31) // leaves
-    texture_color.xyz *= vec3(0.125, 0.494, 0.027);
-
-  if (diffuse_intensity < 0.1)
-    diffuse_intensity = 0.1;
-  if (fs_in.BlockID == 31 || fs_in.BlockID == 39 || fs_in.BlockID == 40 || fs_in.BlockID == 37 || fs_in.BlockID == 38 || fs_in.BlockID == 6) // tall_grass
-    diffuse_intensity = 1.0;
-
-  FragColor = vec4(texture_color.xyz * vec3(diffuse_intensity), 1.0);
+  Color = vec4(out_color, 1.0);
 }

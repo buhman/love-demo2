@@ -18,12 +18,17 @@ struct test_location {
     unsigned int texture;
     unsigned int block_position;
     unsigned int block_id;
-    //unsigned int configuration;
+    unsigned int data;
   } attrib;
   struct {
     unsigned int transform;
     unsigned int terrain_sampler;
+
+    unsigned int texture_id;
   } uniform;
+  struct {
+    unsigned int texture_id;
+  } binding;
 };
 static unsigned int test_program;
 static test_location test_location;
@@ -35,6 +40,24 @@ struct quad_location {
 };
 static unsigned int quad_program;
 static quad_location quad_location;
+
+struct lighting_location {
+  struct {
+    unsigned int position_sampler;
+    unsigned int normal_sampler;
+    unsigned int color_sampler;
+    unsigned int quadratic;
+    unsigned int linear;
+    unsigned int eye;
+
+    unsigned int lights;
+  } uniform;
+  struct {
+    unsigned int lights;
+  } binding;
+};
+static unsigned int lighting_program;
+static lighting_location lighting_location;
 
 struct char_tpl {
   const char * vtx;
@@ -100,19 +123,26 @@ void load_test_program()
 
   test_location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
   test_location.attrib.block_id = glGetAttribLocation(program, "BlockID");
+  test_location.attrib.data = glGetAttribLocation(program, "Data");
   printf("test program:\n");
-  printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n",
+  printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  block_id %u\n",
          test_location.attrib.position,
          test_location.attrib.normal,
          test_location.attrib.texture,
          test_location.attrib.block_position,
-         test_location.attrib.block_id);
+         test_location.attrib.block_id,
+         test_location.attrib.data);
 
   test_location.uniform.transform = glGetUniformLocation(program, "Transform");
   test_location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
-  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n",
+  test_location.uniform.texture_id = glGetUniformBlockIndex(program, "TextureID");
+  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n  texture_id %u\n",
          test_location.uniform.transform,
-         test_location.uniform.terrain_sampler);
+         test_location.uniform.terrain_sampler,
+         test_location.uniform.texture_id);
+
+  test_location.binding.texture_id = 0;
+  glUniformBlockBinding(program, test_location.uniform.texture_id, test_location.binding.texture_id);
 
   test_program = program;
 }
@@ -129,6 +159,33 @@ void load_quad_program()
          quad_location.uniform.texture_sampler);
 
   quad_program = program;
+}
+
+void load_lighting_program()
+{
+  unsigned int program = compile_from_files("shader/quad.vert",
+                                            NULL,
+                                            "shader/lighting.frag");
+
+  lighting_location.uniform.position_sampler = glGetUniformLocation(program, "PositionSampler");
+  lighting_location.uniform.normal_sampler = glGetUniformLocation(program, "NormalSampler");
+  lighting_location.uniform.color_sampler = glGetUniformLocation(program, "ColorSampler");
+  lighting_location.uniform.quadratic = glGetUniformLocation(program, "Quadratic");
+  lighting_location.uniform.linear = glGetUniformLocation(program, "Linear");
+  lighting_location.uniform.eye = glGetUniformLocation(program, "Eye");
+  lighting_location.uniform.lights = glGetUniformBlockIndex(program, "Lights");
+
+  fprintf(stderr, "lighting program:\n");
+  fprintf(stderr, " uniforms:\n  position_sampler %u  normal_sampler %u  color_sampler %u  lights %u\n",
+          lighting_location.uniform.position_sampler,
+          lighting_location.uniform.normal_sampler,
+          lighting_location.uniform.color_sampler,
+          lighting_location.uniform.lights);
+
+  lighting_location.binding.lights = 0;
+  glUniformBlockBinding(program, lighting_location.uniform.lights, lighting_location.binding.lights);
+
+  lighting_program = program;
 }
 
 void load_per_instance_vertex_buffer(int i)
@@ -201,6 +258,10 @@ void load_test_vertex_attributes()
   glEnableVertexAttribArray(test_location.attrib.block_id);
   glVertexAttribFormat(test_location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
   glVertexAttribBinding(test_location.attrib.block_id, 1);
+
+  glEnableVertexAttribArray(test_location.attrib.data);
+  glVertexAttribFormat(test_location.attrib.data, 1, GL_UNSIGNED_BYTE, GL_FALSE, 7);
+  glVertexAttribBinding(test_location.attrib.data, 1);
 
   glBindVertexArray(0);
 }
@@ -334,23 +395,34 @@ void load_textures()
 }
 
 static unsigned int light_uniform_buffer;
+static unsigned int texture_id_uniform_buffer;
 
-void load_light_uniform_buffer()
+unsigned int load_uniform_buffer(char const * const path)
 {
   unsigned int buffer;
   glGenBuffers(1, &buffer);
   glBindBuffer(GL_UNIFORM_BUFFER, buffer);
 
   int data_size;
-  void * data = read_file("minecraft/global.lights.vtx", &data_size);
+  void * data = read_file(path, &data_size);
   assert(data != NULL);
 
   glBufferData(GL_UNIFORM_BUFFER, data_size, data, GL_STATIC_DRAW);
   free(data);
 
-  light_uniform_buffer = buffer;
-
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+  return buffer;
+}
+
+void load_light_uniform_buffer()
+{
+  light_uniform_buffer = load_uniform_buffer("minecraft/global.lights.vtx");
+}
+
+void load_texture_id_uniform_buffer()
+{
+  texture_id_uniform_buffer = load_uniform_buffer("minecraft/block_id_to_texture_id.data");
 }
 
 extern "C" {
@@ -382,20 +454,15 @@ void load(const char * source_path)
   load_test_program();
   load_buffers();
   load_textures();
+  load_texture_id_uniform_buffer();
 
   view_state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  view_state.eye = XMVectorSet(0, 0, 0, 1);
-  view_state.forward = XMVectorSet(1, 0, 0, 0);
+  view_state.eye = XMVectorSet(50.5f, 40.25f, 59.0f, 1);
+  view_state.forward = XMVectorSet(0.93, -0.38, 0, 0);
   view_state.direction = view_state.forward;
-  view_state.pitch = 0.0;
+  view_state.pitch = -0.278;
 
   view_state.fov = 1.5;
-
-  load_light_uniform_buffer();
-
-  //location.uniform.light_block = glGetUniformBlockIndex(test_program, "TexturesLayout");
-  //glUniformBlockBinding(ProgramName, location.uniform.light_block, bindingPoint);
-  //printf("textures_layout %d\n", textures_layout);
 
   //////////////////////////////////////////////////////////////////////
   // font
@@ -412,22 +479,39 @@ void load(const char * source_path)
 
   load_quad_program();
   load_quad_index_buffer();
+
+  //////////////////////////////////////////////////////////////////////
+  // lighting
+  //////////////////////////////////////////////////////////////////////
+
+  load_lighting_program();
+  load_light_uniform_buffer();
 }
 
 float _ry = 0.0;
 
+struct light_parameters {
+  float quadratic;
+  float linear;
+};
+light_parameters lighting = {
+  .quadratic = 1.0,
+  .linear = 1.0
+};
+
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
-            int up, int down, int left, int right)
+            int up, int down, int left, int right,
+            int a, int b, int x, int y)
 {
   //view_state.yaw += rx;
   XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
 
-  view_state.forward = XMVector3Transform(view_state.forward, mrz);
+  view_state.forward = XMVector3Transform(XMVector3NormalizeEst(view_state.forward), mrz);
   XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
 
   view_state.pitch += ry * -0.035;
-  if (view_state.pitch > 1.5f) view_state.pitch = 1.5f;
-  if (view_state.pitch < -1.5f) view_state.pitch = -1.5f;
+  if (view_state.pitch > 1.57f) view_state.pitch = 1.57f;
+  if (view_state.pitch < -1.57f) view_state.pitch = -1.57f;
 
   XMMATRIX mrn = XMMatrixRotationAxis(normal, view_state.pitch);
   view_state.direction = XMVector3Transform(view_state.forward, mrn);
@@ -438,6 +522,12 @@ void update(float lx, float ly, float rx, float ry, float tl, float tr,
   if (new_fov > 0.00001f) {
     view_state.fov = new_fov;
   }
+  lighting.quadratic += 0.01 * a + -0.01 * b;
+  if (lighting.quadratic < 0.0f)
+    lighting.quadratic = 0.0f;
+  lighting.linear += 0.01 * x + -0.01 * y;
+  if (lighting.linear < 0.0f)
+    lighting.linear = 0.0f;
 }
 
 static inline int popcount(int x)
@@ -452,6 +542,20 @@ void labeled_value(char * const buf, char const * const label, char const * cons
   memcpy(buf, label, label_length);
   int len = snprintf(&buf[label_length], 511 - label_length, format, value);
   buf[label_length + len] = 0;
+}
+
+inline static float draw_vector(font::font const& ter_best, char * const buf, float y, char const * const label, XMVECTOR vec)
+{
+  labeled_value<float>(buf, label, ".x: %.2f", XMVectorGetX(vec));
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+  labeled_value<float>(buf, label, ".y: %.2f", XMVectorGetY(vec));
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+  labeled_value<float>(buf, label, ".z: %.2f", XMVectorGetZ(vec));
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+  return y;
 }
 
 void draw_hud()
@@ -469,11 +573,22 @@ void draw_hud()
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 
-  labeled_value<float>(buf, "pitch: ", "%.9f", view_state.pitch);
+  labeled_value<int>(buf, "font_height: ", "%d", ter_best.desc->glyph_height);
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 
-  labeled_value<int>(buf, "font_height: ", "%d", ter_best.desc->glyph_height);
+  labeled_value<float>(buf, "lighting.quadratic: ", "%.2f", lighting.quadratic);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+
+  labeled_value<float>(buf, "lighting.linear: ", "%.2f", lighting.linear);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+
+  y = draw_vector(ter_best, buf, y, "eye", view_state.eye);
+  y = draw_vector(ter_best, buf, y, "forward", view_state.forward);
+
+  labeled_value<float>(buf, "pitch: ", "%.9f", view_state.pitch);
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 }
@@ -505,7 +620,7 @@ void draw_minecraft()
   glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&transform);
   glUniform1i(test_location.uniform.terrain_sampler, 0);
 
-  //glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.light_block, light_uniform_buffer);
+  glBindBufferBase(GL_UNIFORM_BUFFER, test_location.binding.texture_id, texture_id_uniform_buffer);
 
   //glEnable(GL_CULL_FACE);
   //glCullFace(GL_FRONT);
@@ -565,6 +680,45 @@ void draw_quad()
   glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
 }
 
+static inline bool near_zero(float a)
+{
+  return (fabsf(a) < 0.00001f);
+}
+
+void draw_lighting()
+{
+  glUseProgram(lighting_program);
+  glDepthFunc(GL_ALWAYS);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[0]);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[1]);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[2]);
+
+  glUniform1i(lighting_location.uniform.position_sampler, 0);
+  glUniform1i(lighting_location.uniform.normal_sampler, 1);
+  glUniform1i(lighting_location.uniform.color_sampler, 2);
+
+  float quadratic = near_zero(lighting.quadratic) ? 0.0 : 1.0f / lighting.quadratic;
+  float linear = near_zero(lighting.linear) ? 0.0 : 1.0f / lighting.linear;
+  glUniform1f(lighting_location.uniform.quadratic, quadratic);
+  glUniform1f(lighting_location.uniform.linear, linear);
+
+
+  XMFLOAT3 eye;
+  XMStoreFloat3(&eye, view_state.eye);
+  glUniform3fv(lighting_location.uniform.eye, 1, (float*)&eye);
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, lighting_location.binding.lights, light_uniform_buffer);
+
+  glBindVertexArray(empty_vertex_array_object);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
+}
+
 void draw()
 {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -578,6 +732,7 @@ void draw()
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  draw_quad();
-  //draw_hud();
+  draw_lighting();
+  //draw_quad();
+  draw_hud();
 }
