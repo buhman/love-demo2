@@ -80,7 +80,8 @@ static unsigned int per_vertex_buffer;
 static const int vertex_size = 8;
 static const int per_vertex_size = (3 + 3 + 2) * 2;
 
-static const int custom_block_types = 3;
+// also update index_buffer_custom_offsets in data.inc
+static const int custom_block_types = 4;
 static const int instance_cfg_length = 64 + custom_block_types;
 
 struct instance_cfg {
@@ -457,10 +458,10 @@ void load(const char * source_path)
   load_texture_id_uniform_buffer();
 
   view_state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  view_state.eye = XMVectorSet(50.5f, 40.25f, 59.0f, 1);
-  view_state.forward = XMVectorSet(0.93, -0.38, 0, 0);
+  view_state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
+  view_state.forward = XMVectorSet(-0.63, 0.78, 0, 0);
   view_state.direction = view_state.forward;
-  view_state.pitch = -0.278;
+  view_state.pitch = -0.11;
 
   view_state.fov = 1.5;
 

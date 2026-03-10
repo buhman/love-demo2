@@ -15,4 +15,5 @@ struct {
   {1152, 12}, // tallgrass.obj
   {1164, 36}, // fence.obj
   {1200, 36}, // torch.obj
+  {1236, 24}, // wheat.obj
 };

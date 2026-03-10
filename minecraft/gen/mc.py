@@ -37,9 +37,17 @@ custom_blocks = [
     { # "torch" model
         data.BlockID.TORCH,
     },
+    { # "wheat" model
+        data.BlockID.WHEAT,
+    },
 ]
 
 non_solid_blocks = set(chain.from_iterable(custom_blocks))
+
+hack_non_solid_blocks = set([
+    data.BlockID.LADDER,
+    data.BlockID.WIRE,
+])
 
 def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
     if ny > 127 or ny < 0:
@@ -54,7 +62,7 @@ def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
     n_block_index = mcregion.block_index_from_xyz(nx, ny, nz)
     n_block_id = level_table[key].blocks[n_block_index]
 
-    has_neighbor = (n_block_id != data.BlockID.AIR) and (n_block_id not in non_solid_blocks)
+    has_neighbor = (n_block_id != data.BlockID.AIR) and (n_block_id not in non_solid_blocks) and (n_block_id not in hack_non_solid_blocks)
     return has_neighbor
 
 def block_neighbors(level_table, chunk_x, chunk_z, block_index):
@@ -76,7 +84,7 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
                 yield i
 
     normal_indices = list(find_non_neighbors())
-    if block_id in non_solid_blocks or normal_indices:
+    if block_id in non_solid_blocks or block_id in hack_non_solid_blocks or normal_indices:
         yield center_position, block_id, block_data, normal_indices
 
 def devoxelize_region(level_table, level_table_keys):

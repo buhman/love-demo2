@@ -257,6 +257,7 @@ class Texture:
     ORE_LAPIS = 160
     POWERED_RAIL = 163
     REDSTONE_DUST = 164
+    REDSTONE_DUST_LINE = 165
 
     DETECTOR_RAIL = 195
 
@@ -319,6 +320,7 @@ tiles = [
     Tile(BlockID.OBSIDIAN, Texture.OBSIDIAN),
     Tile(BlockID.TORCH, Texture.TORCH_LIT),
     Tile(BlockID.STAIRS_WOOD, Texture.PLANKS), # fixme
+    Tile(BlockID.WIRE, Texture.REDSTONE_DUST),
     Tile(BlockID.ORE_EMERALD, Texture.ORE_EMERALD),
     Tile(BlockID.BLOCK_EMERALD, Texture.EMERALD),
     Tile(BlockID.FARMLAND, Texture.FARMLAND), # fixme

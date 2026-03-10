@@ -73,6 +73,8 @@ def main():
         write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "fence.obj")
         index_lookup = {}
         write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "torch.obj")
+        index_lookup = {}
+        write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "wheat.obj")
 
     with open("../per_vertex.vtx", "wb") as f:
         build_vertex_buffer(f, vertex_buffer)
