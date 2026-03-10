@@ -66,6 +66,7 @@ struct lighting_location {
     unsigned int quadratic;
     unsigned int linear;
     unsigned int eye;
+    unsigned int mouse_position;
 
     unsigned int lights;
   } uniform;
@@ -112,6 +113,12 @@ static instance_cfg instance_cfg[region_count];
 
 static unsigned int empty_vertex_array_object = -1;
 static unsigned int quad_index_buffer = -1;
+
+static XMFLOAT3 mouse_position;
+static bool mouse_position_sample = true;
+
+static float current_time;
+static float last_frame_time;
 
 void load_quad_index_buffer()
 {
@@ -191,6 +198,7 @@ void load_lighting_program()
   lighting_location.uniform.quadratic = glGetUniformLocation(program, "Quadratic");
   lighting_location.uniform.linear = glGetUniformLocation(program, "Linear");
   lighting_location.uniform.eye = glGetUniformLocation(program, "Eye");
+  lighting_location.uniform.mouse_position = glGetUniformLocation(program, "MousePosition");
   lighting_location.uniform.lights = glGetUniformBlockIndex(program, "Lights");
 
   fprintf(stderr, "lighting program:\n");
@@ -641,17 +649,22 @@ light_parameters lighting = {
   .linear = 1.0
 };
 
-void kb_update(int up, int down, int left, int right)
+void update_keyboard(int up, int down, int left, int right)
 {
   XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
   view_state.eye += view_state.forward * (0.1f * up + -0.1f * down);
   view_state.eye += normal * (-0.1f * left + 0.1f * right);
 }
 
-void update(float lx, float ly, float rx, float ry, float tl, float tr,
-            int up, int down, int left, int right,
-            int a, int b, int x, int y,
-            int leftshoulder, int rightshoulder)
+const int max_joysticks = 8;
+static int last_frame_start[max_joysticks] = {};
+
+void update_joystick(int joystick_index,
+                     float lx, float ly, float rx, float ry, float tl, float tr,
+                     int up, int down, int left, int right,
+                     int a, int b, int x, int y,
+                     int leftshoulder, int rightshoulder,
+                     int start)
 {
   //view_state.yaw += rx;
   XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
@@ -685,6 +698,16 @@ void update(float lx, float ly, float rx, float ry, float tl, float tr,
   if (rightshoulder) {
     load_line_point_from_eye(1);
   }
+  if (start && (start != last_frame_start[joystick_index])) {
+    mouse_position_sample = !mouse_position_sample;
+    printf("mouse_position_sample: %d\n", mouse_position_sample);
+  }
+  last_frame_start[joystick_index] = start;
+}
+
+void update(float time)
+{
+  current_time = time;
 }
 
 static inline int popcount(int x)
@@ -713,6 +736,37 @@ inline static float draw_vector(font::font const& ter_best, char * const buf, fl
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
   return y;
+}
+
+static int average_init = 0;
+static int average_ix = 0;
+static float rolling_sum = 0;
+static float averages[16] = {};
+
+const int frame_warmup = 10;
+
+float update_average(float value)
+{
+  if (average_init < frame_warmup) {
+    average_init += 1;
+    return 0.0f;
+  }
+  if (average_init == frame_warmup) {
+    assert(average_ix == 0);
+    rolling_sum = value * 16.0f;
+    for (int i = 0; i < 16; i++) {
+      averages[i] = value;
+    }
+    average_init += 1;
+  } else {
+    rolling_sum -= averages[average_ix];
+    rolling_sum += value;
+
+    averages[average_ix] = value;
+    average_ix = (average_ix + 1) % 16;
+  }
+
+  return rolling_sum * (1.0f / 16.0f);
 }
 
 void draw_hud()
@@ -746,6 +800,13 @@ void draw_hud()
   y = draw_vector(ter_best, buf, y, "forward", view_state.forward);
 
   labeled_value<float>(buf, "pitch: ", "%.9f", view_state.pitch);
+  font::draw_string(ter_best, buf, 10, y);
+  y += ter_best.desc->glyph_height;
+
+  XMVECTOR position = XMLoadFloat3(&mouse_position);
+  y = draw_vector(ter_best, buf, y, "mouse_position", position);
+
+  labeled_value<float>(buf, "frame_rate_avg: ", "%.2f", 1.0f / update_average(current_time - last_frame_time));
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 }
@@ -872,6 +933,7 @@ void draw_lighting()
   XMFLOAT3 eye;
   XMStoreFloat3(&eye, view_state.eye);
   glUniform3fv(lighting_location.uniform.eye, 1, (float*)&eye);
+  glUniform3fv(lighting_location.uniform.mouse_position, 1, (float*)&mouse_position);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, lighting_location.binding.lights, light_uniform_buffer);
 
@@ -912,6 +974,34 @@ void draw_line()
   glDrawElementsInstanced(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count);
 }
 
+int clamp(int n, int high)
+{
+  if (n < 0)
+    return 0;
+  if (n >= high)
+    return high;
+  return n;
+}
+
+void update_mouse(int x, int y)
+{
+  if (!mouse_position_sample)
+    return;
+
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
+  glReadBuffer(geometry_buffer_pnc_types[target_name::POSITION].attachment);
+
+  x = clamp(x, geometry_buffer_pnc.width);
+  y = clamp(y, geometry_buffer_pnc.height);
+  glReadPixels(x,
+               geometry_buffer_pnc.height - y,
+               1, // width
+               1, // height
+               GL_RGB,
+               GL_FLOAT,
+               (void*)&mouse_position);
+}
+
 void draw()
 {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -929,4 +1019,6 @@ void draw()
   draw_lighting();
   //draw_quad();
   draw_hud();
+
+  last_frame_time = current_time;
 }

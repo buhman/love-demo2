@@ -3,25 +3,36 @@ local joysticks
 
 function init()
    joysticks = love.joystick.getJoysticks()
+   for i, joystick in ipairs(joysticks) do
+      print(i, joystick:getName())
+   end
 
    ffi.cdef[[
 void load(const char * source_path);
 void update_window(int width, int height);
 void draw();
-void kb_update(int kbup, int kbdown, int kbleft, int kbright);
-void update(float lx, float ly, float rx, float ry, float tl, float tr,
-            int up, int down, int left, int right,
-            int a, int b, int x, int y,
-            int leftshoulder, int rightshoulder);
+void update_keyboard(int kbup, int kbdown, int kbleft, int kbright);
+void update_mouse(int x, int y);
+void update_joystick(int joystick_index,
+                     float lx, float ly, float rx, float ry, float tl, float tr,
+                     int up, int down, int left, int right,
+                     int a, int b, int x, int y,
+                     int leftshoulder, int rightshoulder,
+                     int start);
+void update(float time);
 ]]
    local source_path = love.filesystem.getSource()
    test = ffi.load(source_path .. "/test.so")
    test.load(source_path)
-   print(love.filesystem.getWorkingDirectory())
 end
 
-local update = function(dt)
-   for _, joystick in ipairs(joysticks) do
+local update = function(time)
+   test.update(time)
+
+   for joystick_index, joystick in ipairs(joysticks) do
+      if joystick_index >= 8 then
+         break
+      end
       local lx = joystick:getGamepadAxis("leftx")
       local ly = joystick:getGamepadAxis("lefty")
       local rx = joystick:getGamepadAxis("rightx")
@@ -38,18 +49,21 @@ local update = function(dt)
       local y = joystick:isGamepadDown("y")
       local leftshoulder = joystick:isGamepadDown("leftshoulder")
       local rightshoulder = joystick:isGamepadDown("rightshoulder")
-
-      test.update(lx, ly, rx, ry, tl, tr,
-                  up, down, left, right,
-                  a, b, x, y,
-                  leftshoulder, rightshoulder)
+      local start = joystick:isGamepadDown("start")
+      --print("start", i, start)
+      test.update_joystick(joystick_index,
+                           lx, ly, rx, ry, tl, tr,
+                           up, down, left, right,
+                           a, b, x, y,
+                           leftshoulder, rightshoulder,
+                           start)
    end
 
    local up = love.keyboard.isDown("up")
    local down = love.keyboard.isDown("down")
    local left = love.keyboard.isDown("left")
    local right = love.keyboard.isDown("right")
-   test.kb_update(up, down, left, right);
+   test.update_keyboard(up, down, left, right);
 end
 
 local draw = function()
@@ -59,7 +73,7 @@ end
 function love.run()
    init()
 
-   love.timer.step()
+   --love.timer.step()
 
    return function()
       love.event.pump()
@@ -77,14 +91,18 @@ function love.run()
       width, height, flags = love.window.getMode()
       test.update_window(width, height)
 
-      local dt = love.timer.step()
-      update(dt)
+      --local dt = love.timer.step()
+      local time = love.timer.getTime()
+      update(time)
 
       draw()
 
+      local x, y = love.mouse.getPosition()
+      test.update_mouse(x, y)
+
       love.graphics.present()
       love.timer.sleep(0.001)
-      local fps = love.timer.getFPS( )
+      --local fps = love.timer.getFPS( )
       --print(fps)
    end
 end

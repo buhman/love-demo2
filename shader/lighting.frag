@@ -7,6 +7,7 @@ uniform sampler2D ColorSampler;
 uniform float Linear;
 uniform float Quadratic;
 uniform vec3 Eye;
+uniform vec3 MousePosition;
 
 layout (location = 0) out vec4 Color;
 
@@ -37,7 +38,8 @@ void main()
   }
   vec3 light_direction = normalize(Eye.xyz - position.xyz);
   float diffuse = max(dot(normal.xyz, light_direction), 0.0);
+  if (floor(MousePosition + 0.5) == floor(position.xyz + 0.5))
+    diffuse = 1.5;
   out_color = color.xyz * diffuse;
-
   Color = vec4(out_color, 1.0);
 }
