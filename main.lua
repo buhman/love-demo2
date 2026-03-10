@@ -8,6 +8,7 @@ function init()
 void load(const char * source_path);
 void update_window(int width, int height);
 void draw();
+void kb_update(int kbup, int kbdown, int kbleft, int kbright);
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right,
             int a, int b, int x, int y);
@@ -34,8 +35,17 @@ local update = function(dt)
       local b = joystick:isGamepadDown("b")
       local x = joystick:isGamepadDown("x")
       local y = joystick:isGamepadDown("y")
-      test.update(lx, ly, rx, ry, tl, tr, up, down, left, right, a, b, x, y)
+
+      test.update(lx, ly, rx, ry, tl, tr,
+                  up, down, left, right,
+                  a, b, x, y)
    end
+
+   local up = love.keyboard.isDown("up")
+   local down = love.keyboard.isDown("down")
+   local left = love.keyboard.isDown("left")
+   local right = love.keyboard.isDown("right")
+   test.kb_update(up, down, left, right);
 end
 
 local draw = function()

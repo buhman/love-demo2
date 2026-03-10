@@ -8,6 +8,7 @@
 #include "test.h"
 #include "font.h"
 #include "window.h"
+#include "bresenham.h"
 
 #include "data.inc"
 
@@ -32,6 +33,22 @@ struct test_location {
 };
 static unsigned int test_program;
 static test_location test_location;
+
+struct line_location {
+  struct {
+    unsigned int position;
+    unsigned int normal;
+    unsigned int texture;
+    unsigned int block_position;
+  } attrib;
+  struct {
+    unsigned int transform;
+  } uniform;
+};
+static unsigned int line_program;
+static line_location line_location;
+static unsigned int line_vertex_array_object;
+static unsigned int line_instance_buffer;
 
 struct quad_location {
   struct {
@@ -443,6 +460,105 @@ view_state view_state;
 
 font::font * terminus_fonts;
 
+struct short_point {
+  short x;
+  short y;
+  short z;
+};
+static_assert((sizeof (short_point)) == 6);
+
+short_point line_points[128];
+static int line_point_ix = 0;
+
+void line_point(int x, int y, int z)
+{
+  if (line_point_ix >= 128)
+    return;
+
+  printf("%d %d %d\n", x, y, z);
+  line_points[line_point_ix].x = x;
+  line_points[line_point_ix].y = y;
+  line_points[line_point_ix].z = z;
+  line_point_ix += 1;
+}
+
+void load_line_program()
+{
+  unsigned int program = compile_from_files("shader/line.vert",
+                                            NULL,
+                                            "shader/line.frag");
+
+  line_location.attrib.position = glGetAttribLocation(program, "Position");
+  line_location.attrib.normal = glGetAttribLocation(program, "Normal");
+  line_location.attrib.texture = glGetAttribLocation(program, "Texture");
+
+  line_location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
+
+  printf("line program:\n");
+  printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n",
+         line_location.attrib.position,
+         line_location.attrib.normal,
+         line_location.attrib.texture,
+         line_location.attrib.block_position);
+
+  line_location.uniform.transform = glGetUniformLocation(program, "Transform");
+  printf(" uniforms:\n  transform %u\n\n",
+         line_location.uniform.transform);
+
+  line_program = program;
+}
+
+void load_line_vertex_attributes()
+{
+  glGenVertexArrays(1, &line_vertex_array_object);
+  glBindVertexArray(line_vertex_array_object);
+
+  glVertexBindingDivisor(0, 0);
+  glVertexBindingDivisor(1, 1);
+
+  glEnableVertexAttribArray(line_location.attrib.position);
+  glVertexAttribFormat(line_location.attrib.position, 3, GL_HALF_FLOAT, GL_FALSE, 0);
+  glVertexAttribBinding(line_location.attrib.position, 0);
+
+  glEnableVertexAttribArray(line_location.attrib.normal);
+  glVertexAttribFormat(line_location.attrib.normal, 3, GL_HALF_FLOAT, GL_FALSE, 6);
+  glVertexAttribBinding(line_location.attrib.normal, 0);
+
+  glEnableVertexAttribArray(line_location.attrib.texture);
+  glVertexAttribFormat(line_location.attrib.texture, 2, GL_HALF_FLOAT, GL_FALSE, 12);
+  glVertexAttribBinding(line_location.attrib.texture, 0);
+
+  glEnableVertexAttribArray(line_location.attrib.block_position);
+  glVertexAttribFormat(line_location.attrib.block_position, 3, GL_SHORT, GL_FALSE, 0);
+  glVertexAttribBinding(line_location.attrib.block_position, 1);
+
+  glBindVertexArray(0);
+}
+
+void load_line_instance_buffer()
+{
+  glBindBuffer(GL_ARRAY_BUFFER, line_instance_buffer);
+  glBufferData(GL_ARRAY_BUFFER, (sizeof (short_point)) * line_point_ix, line_points, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void load_line()
+{
+  int x1 = -55;
+  int z1 = 48;
+  int y1 = 50;
+
+  int x2 = -60;
+  int z2 = 55;
+  int y2 = 53;
+
+  line_point_ix = 0;
+  bresenham(x1, y1, z1, x2, y2, z2, line_point);
+
+  load_line_instance_buffer();
+}
+
 void load(const char * source_path)
 {
   g_source_path_length = strlen(source_path);
@@ -487,6 +603,16 @@ void load(const char * source_path)
 
   load_lighting_program();
   load_light_uniform_buffer();
+
+  //////////////////////////////////////////////////////////////////////
+  // line
+  //////////////////////////////////////////////////////////////////////
+
+  load_line_program();
+  load_line_vertex_attributes();
+
+  glGenBuffers(1, &line_instance_buffer);
+  load_line();
 }
 
 float _ry = 0.0;
@@ -499,6 +625,13 @@ light_parameters lighting = {
   .quadratic = 1.0,
   .linear = 1.0
 };
+
+void kb_update(int up, int down, int left, int right)
+{
+  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
+  view_state.eye += view_state.forward * (0.1f * up + -0.1f * down);
+  view_state.eye += normal * (-0.1f * left + 0.1f * right);
+}
 
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right,
@@ -594,11 +727,8 @@ void draw_hud()
   y += ter_best.desc->glyph_height;
 }
 
-void draw_minecraft()
+XMMATRIX current_view_projection()
 {
-  // possibly re-initialize geometry buffer if window width/height changes
-  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
-
   XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
   XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
 
@@ -608,6 +738,13 @@ void draw_minecraft()
   float far_z = 0.1;
   XMMATRIX projection = XMMatrixPerspectiveFovRH(fov_angle_y, aspect_ratio, near_z, far_z);
   XMMATRIX transform = view * projection;
+  return transform;
+}
+
+void draw_minecraft()
+{
+  // possibly re-initialize geometry buffer if window width/height changes
+  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
 
   glUseProgram(test_program);
 
@@ -618,6 +755,7 @@ void draw_minecraft()
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
 
+  XMMATRIX transform = current_view_projection();
   glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&transform);
   glUniform1i(test_location.uniform.terrain_sampler, 0);
 
@@ -720,6 +858,34 @@ void draw_lighting()
   glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
 }
 
+void draw_line()
+{
+  glUseProgram(line_program);
+
+  glBlendFunc(GL_ONE, GL_ZERO);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_GREATER);
+
+  XMMATRIX transform = current_view_projection();
+  glUniformMatrix4fv(line_location.uniform.transform, 1, false, (float *)&transform);
+
+  //glEnable(GL_CULL_FACE);
+  //glCullFace(GL_FRONT);
+  //glFrontFace(GL_CCW);
+
+  glBindVertexArray(line_vertex_array_object);
+  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
+  int line_instance_vertex_size = (sizeof (short_point));
+  glBindVertexBuffer(1, line_instance_buffer, 0, line_instance_vertex_size);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+
+  int configuration = 63;
+  int element_count = 6 * popcount(configuration);
+  const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
+  int instance_count = line_point_ix;
+  glDrawElementsInstanced(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count);
+}
+
 void draw()
 {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -729,6 +895,7 @@ void draw()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   draw_minecraft();
+  draw_line();
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

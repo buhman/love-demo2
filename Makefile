@@ -21,7 +21,8 @@ OBJS = \
 	src/opengl.o \
 	src/test.o \
 	src/font.o \
-	src/window.o
+	src/window.o \
+	src/bresenham.o
 
 all: test.so
 
