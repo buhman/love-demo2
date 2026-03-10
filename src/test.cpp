@@ -470,7 +470,7 @@ static_assert((sizeof (short_point)) == 6);
 short_point line_points[128];
 static int line_point_ix = 0;
 
-void line_point(int x, int y, int z)
+void append_line_point(int x, int y, int z)
 {
   if (line_point_ix >= 128)
     return;
@@ -543,20 +543,36 @@ void load_line_instance_buffer()
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+struct line_state {
+  struct {
+    int x;
+    int y;
+    int z;
+  } point[2];
+};
+static line_state line_state = {};
+
 void load_line()
 {
-  int x1 = -55;
-  int z1 = 48;
-  int y1 = 50;
-
-  int x2 = -60;
-  int z2 = 55;
-  int y2 = 53;
-
   line_point_ix = 0;
-  bresenham(x1, y1, z1, x2, y2, z2, line_point);
+  bresenham(line_state.point[0].x, line_state.point[0].y, line_state.point[0].z,
+            line_state.point[1].x, line_state.point[1].y, line_state.point[1].z,
+            append_line_point);
 
   load_line_instance_buffer();
+}
+
+void load_line_point_from_eye(int point_ix)
+{
+  int x = XMVectorGetX(view_state.eye);
+  int y = XMVectorGetY(view_state.eye);
+  int z = XMVectorGetZ(view_state.eye);
+
+  line_state.point[point_ix].x = x;
+  line_state.point[point_ix].y = z;
+  line_state.point[point_ix].z = y;
+
+  load_line();
 }
 
 void load(const char * source_path)
@@ -612,7 +628,6 @@ void load(const char * source_path)
   load_line_vertex_attributes();
 
   glGenBuffers(1, &line_instance_buffer);
-  load_line();
 }
 
 float _ry = 0.0;
@@ -635,7 +650,8 @@ void kb_update(int up, int down, int left, int right)
 
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right,
-            int a, int b, int x, int y)
+            int a, int b, int x, int y,
+            int leftshoulder, int rightshoulder)
 {
   //view_state.yaw += rx;
   XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
@@ -662,6 +678,13 @@ void update(float lx, float ly, float rx, float ry, float tl, float tr,
   lighting.linear += 0.01 * x + -0.01 * y;
   if (lighting.linear < 0.0f)
     lighting.linear = 0.0f;
+
+  if (leftshoulder) {
+    load_line_point_from_eye(0);
+  }
+  if (rightshoulder) {
+    load_line_point_from_eye(1);
+  }
 }
 
 static inline int popcount(int x)
@@ -860,6 +883,9 @@ void draw_lighting()
 
 void draw_line()
 {
+  if (line_point_ix == 0)
+    return;
+
   glUseProgram(line_program);
 
   glBlendFunc(GL_ONE, GL_ZERO);

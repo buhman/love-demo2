@@ -11,7 +11,8 @@ void draw();
 void kb_update(int kbup, int kbdown, int kbleft, int kbright);
 void update(float lx, float ly, float rx, float ry, float tl, float tr,
             int up, int down, int left, int right,
-            int a, int b, int x, int y);
+            int a, int b, int x, int y,
+            int leftshoulder, int rightshoulder);
 ]]
    local source_path = love.filesystem.getSource()
    test = ffi.load(source_path .. "/test.so")
@@ -35,10 +36,13 @@ local update = function(dt)
       local b = joystick:isGamepadDown("b")
       local x = joystick:isGamepadDown("x")
       local y = joystick:isGamepadDown("y")
+      local leftshoulder = joystick:isGamepadDown("leftshoulder")
+      local rightshoulder = joystick:isGamepadDown("rightshoulder")
 
       test.update(lx, ly, rx, ry, tl, tr,
                   up, down, left, right,
-                  a, b, x, y)
+                  a, b, x, y,
+                  leftshoulder, rightshoulder)
    end
 
    local up = love.keyboard.isDown("up")

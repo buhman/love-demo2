@@ -32,9 +32,12 @@ void main()
     //float attenuation = 1.0 / (1.0 + Linear * light_distance + Quadratic * light_distance * light_distance);
 
     float attenuation = 1.0 / (1.0 + Quadratic * light_distance * light_distance);
-    out_color += color.xyz * attenuation * diffuse;
+    //out_color += color.xyz * attenuation * diffuse;
     //out_color = vec3(diffuse);
   }
+  vec3 light_direction = normalize(Eye.xyz - position.xyz);
+  float diffuse = max(dot(normal.xyz, light_direction), 0.0);
+  out_color = color.xyz * diffuse;
 
   Color = vec4(out_color, 1.0);
 }
