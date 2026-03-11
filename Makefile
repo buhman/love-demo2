@@ -22,7 +22,10 @@ OBJS = \
 	src/test.o \
 	src/font.o \
 	src/window.o \
-	src/bresenham.o
+	src/bresenham.o \
+	src/file.o \
+	src/world.o \
+	src/inthash.o
 
 all: test.so
 

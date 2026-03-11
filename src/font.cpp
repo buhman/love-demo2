@@ -5,6 +5,7 @@
 #include "directxmath/directxmath.h"
 #include "glad/gl.h"
 #include "opengl.h"
+#include "file.h"
 
 #include "font.h"
 #include "window.h"

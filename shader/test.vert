@@ -11,6 +11,7 @@ in float Data;
 
 out VS_OUT {
   vec3 Position;
+  vec3 BlockPosition;
   vec3 Normal;
   vec2 Texture;
   flat int BlockID;
@@ -24,6 +25,7 @@ void main()
   vec3 position = Position + BlockPosition; // world coordinates
 
   vs_out.Position = position;
+  vs_out.BlockPosition = BlockPosition;
   vs_out.Normal = Normal;
   vs_out.Texture = Texture;
   vs_out.BlockID = int(BlockID);

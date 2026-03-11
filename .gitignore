@@ -8,3 +8,5 @@ main
 *.dylib
 __pycache__
 minecraft/region*.lights.vtx
+minecraft/region*.dump
+minecraft/gen/map.txt

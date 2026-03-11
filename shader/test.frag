@@ -2,6 +2,7 @@
 
 in VS_OUT {
   vec3 Position; // world coordinates
+  vec3 BlockPosition;
   vec3 Normal;
   vec2 Texture;
   flat int BlockID;
@@ -13,6 +14,8 @@ layout (location = 1) out vec3 Normal;
 layout (location = 2) out vec3 Color;
 
 uniform sampler2D TerrainSampler;
+uniform vec3 MousePosition;
+uniform vec3 MousePosition2;
 
 layout (std140) uniform TextureID
 {
@@ -61,5 +64,11 @@ void main()
 
   Position = fs_in.Position.xzy;
   Normal = normalize(fs_in.Normal.xzy);
-  Color = texture_color.xyz;
+
+  if (length(fs_in.BlockPosition - floor(MousePosition.xzy)) < 1)
+    Color = vec3(0, 1, 0);
+  else if (length(fs_in.BlockPosition - floor(MousePosition.xzy)) <= 1)
+    Color = vec3(0, 0.5, 0);
+  else
+    Color = texture_color.xyz;
 }

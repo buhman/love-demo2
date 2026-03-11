@@ -67,7 +67,7 @@ def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
 
 def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     block_id = level_table[(chunk_x, chunk_z)].blocks[block_index]
-    if block_id == data.BlockID.AIR:
+    if block_id == data.BlockID.AIR or block_id == data.BlockID.BEDROCK:
         return
 
     block_data = level_table[(chunk_x, chunk_z)].data[block_index // 2]
@@ -213,9 +213,45 @@ all_paths = [
     "/home/bilbo/Love2DWorld/region/r.-1.0.mcr",
 ]
 
+g_stride = 512 * 2
+def from_global_index(i):
+    x, y, z = i % g_stride, i // (g_stride * g_stride), (i // g_stride) % g_stride
+    if x >= 512:
+        x = -x + 511
+    if z >= 512:
+        z = -z + 511
+    assert x < 512 and z < 512
+    return x, y, z
+
+def to_global_index(x,y,z):
+    assert x >= -512 and x < 512, (x, y, z)
+    assert y >= 0 and y < 128, (x, y, z)
+    assert z >= -512 and z < 512, (x, y, z)
+    original_coordinate = (x, y, z)
+    if x < 0:
+        x = -(x - 511)
+    if z < 0:
+        z = -(z - 511)
+    assert z >= 0 and x >= 0
+    value = x + z * g_stride + y * g_stride * g_stride
+    assert from_global_index(value) == original_coordinate, (original_coordinate, value)
+    return value
+
+def dump_blocks(blocks):
+    with open(f"{data_path}.dump", "wb") as f:
+        for block in blocks:
+            center_position, block_id, block_data, normal_indices = block
+            global_index = to_global_index(*center_position)
+            buf = struct.pack("<iBBBB", global_index, block_id, block_data, 0, 0)
+            assert(len(buf) == 8)
+            f.write(buf)
+
 def main2(level_table, level_table_keys):
     blocks = devoxelize_region(level_table, level_table_keys)
+    blocks = list(blocks)
+    dump_blocks(blocks)
     build_block_instances(blocks)
+    print("blocks_length:", len(blocks))
 
 def main(mcr_path, data_path):
     assert mcr_path in all_paths

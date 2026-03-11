@@ -30,7 +30,7 @@ local update = function(time)
    test.update(time)
 
    for joystick_index, joystick in ipairs(joysticks) do
-      if joystick_index >= 8 then
+      if joystick_index > 8 then
          break
       end
       local lx = joystick:getGamepadAxis("leftx")
@@ -51,7 +51,7 @@ local update = function(time)
       local rightshoulder = joystick:isGamepadDown("rightshoulder")
       local start = joystick:isGamepadDown("start")
       --print("start", i, start)
-      test.update_joystick(joystick_index,
+      test.update_joystick(joystick_index - 1,
                            lx, ly, rx, ry, tl, tr,
                            up, down, left, right,
                            a, b, x, y,

@@ -9,6 +9,8 @@
 #include "font.h"
 #include "window.h"
 #include "bresenham.h"
+#include "file.h"
+#include "world.h"
 
 #include "data.inc"
 
@@ -24,6 +26,7 @@ struct test_location {
   struct {
     unsigned int transform;
     unsigned int terrain_sampler;
+    unsigned int mouse_position;
 
     unsigned int texture_id;
   } uniform;
@@ -67,6 +70,7 @@ struct lighting_location {
     unsigned int linear;
     unsigned int eye;
     unsigned int mouse_position;
+    unsigned int mouse_position2;
 
     unsigned int lights;
   } uniform;
@@ -116,6 +120,7 @@ static unsigned int quad_index_buffer = -1;
 
 static XMFLOAT3 mouse_position;
 static bool mouse_position_sample = true;
+static XMVECTOR mouse_ray_position;
 
 static float current_time;
 static float last_frame_time;
@@ -161,10 +166,12 @@ void load_test_program()
   test_location.uniform.transform = glGetUniformLocation(program, "Transform");
   test_location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
   test_location.uniform.texture_id = glGetUniformBlockIndex(program, "TextureID");
-  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n  texture_id %u\n",
+  test_location.uniform.mouse_position = glGetUniformLocation(program, "MousePosition");
+  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n  texture_id %u\n  mouse_position %u\n",
          test_location.uniform.transform,
          test_location.uniform.terrain_sampler,
-         test_location.uniform.texture_id);
+         test_location.uniform.texture_id,
+         test_location.uniform.mouse_position);
 
   test_location.binding.texture_id = 0;
   glUniformBlockBinding(program, test_location.uniform.texture_id, test_location.binding.texture_id);
@@ -199,6 +206,7 @@ void load_lighting_program()
   lighting_location.uniform.linear = glGetUniformLocation(program, "Linear");
   lighting_location.uniform.eye = glGetUniformLocation(program, "Eye");
   lighting_location.uniform.mouse_position = glGetUniformLocation(program, "MousePosition");
+  lighting_location.uniform.mouse_position2 = glGetUniformLocation(program, "MousePosition2");
   lighting_location.uniform.lights = glGetUniformBlockIndex(program, "Lights");
 
   fprintf(stderr, "lighting program:\n");
@@ -480,14 +488,16 @@ static int line_point_ix = 0;
 
 void append_line_point(int x, int y, int z)
 {
-  if (line_point_ix >= 128)
+  if (line_point_ix == 1)
     return;
 
-  printf("%d %d %d\n", x, y, z);
-  line_points[line_point_ix].x = x;
-  line_points[line_point_ix].y = y;
-  line_points[line_point_ix].z = z;
-  line_point_ix += 1;
+  global_entry * const entry = world_lookup(x, y, z);
+  if (entry != NULL) {
+    line_points[line_point_ix].x = x;
+    line_points[line_point_ix].y = y;
+    line_points[line_point_ix].z = z;
+    line_point_ix += 1;
+  }
 }
 
 void load_line_program()
@@ -636,6 +646,12 @@ void load(const char * source_path)
   load_line_vertex_attributes();
 
   glGenBuffers(1, &line_instance_buffer);
+
+  //////////////////////////////////////////////////////////////////////
+  // world
+  //////////////////////////////////////////////////////////////////////
+
+  load_world();
 }
 
 float _ry = 0.0;
@@ -806,23 +822,33 @@ void draw_hud()
   XMVECTOR position = XMLoadFloat3(&mouse_position);
   y = draw_vector(ter_best, buf, y, "mouse_position", position);
 
+  y = draw_vector(ter_best, buf, y, "mouse_ray_position", mouse_ray_position);
+
   labeled_value<float>(buf, "frame_rate_avg: ", "%.2f", 1.0f / update_average(current_time - last_frame_time));
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 }
 
-XMMATRIX current_view_projection()
+static inline XMMATRIX current_projection()
 {
-  XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
-  XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
-
   float fov_angle_y = XMConvertToRadians(45 * view_state.fov);
   float aspect_ratio = g_window_width / g_window_height;
   float near_z = 1.0;
   float far_z = 0.1;
   XMMATRIX projection = XMMatrixPerspectiveFovRH(fov_angle_y, aspect_ratio, near_z, far_z);
-  XMMATRIX transform = view * projection;
-  return transform;
+  return projection;
+}
+
+static inline XMMATRIX current_view()
+{
+  XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
+  XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
+  return view;
+}
+
+static inline XMMATRIX current_view_projection()
+{
+  return current_view() * current_projection();
 }
 
 void draw_minecraft()
@@ -848,6 +874,9 @@ void draw_minecraft()
   //glEnable(GL_CULL_FACE);
   //glCullFace(GL_FRONT);
   //glFrontFace(GL_CCW);
+
+  XMFLOAT3 position2 = {(float)line_points[0].x, (float)line_points[0].z, (float)line_points[0].y};
+  glUniform3fv(test_location.uniform.mouse_position, 1, (float*)&position2);
 
   glBindVertexArray(vertex_array_object);
   glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
@@ -934,6 +963,11 @@ void draw_lighting()
   XMStoreFloat3(&eye, view_state.eye);
   glUniform3fv(lighting_location.uniform.eye, 1, (float*)&eye);
   glUniform3fv(lighting_location.uniform.mouse_position, 1, (float*)&mouse_position);
+  /*
+  printf("m0: %f %f %f\nm1: %f %f %f\n",
+         mouse_position.x, mouse_position.y, mouse_position.z,
+         position2.x, position2.y, position2.z);
+  */
 
   glBindBufferBase(GL_UNIFORM_BUFFER, lighting_location.binding.lights, light_uniform_buffer);
 
@@ -952,7 +986,7 @@ void draw_line()
 
   glBlendFunc(GL_ONE, GL_ZERO);
   glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_GREATER);
+  glDepthFunc(GL_ALWAYS);
 
   XMMATRIX transform = current_view_projection();
   glUniformMatrix4fv(line_location.uniform.transform, 1, false, (float *)&transform);
@@ -971,7 +1005,10 @@ void draw_line()
   int element_count = 6 * popcount(configuration);
   const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
   int instance_count = line_point_ix;
-  glDrawElementsInstanced(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count);
+  int base_instance = 0;
+  if (instance_count - base_instance <= 0)
+    return;
+  glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count - base_instance, base_instance);
 }
 
 int clamp(int n, int high)
@@ -1000,6 +1037,42 @@ void update_mouse(int x, int y)
                GL_RGB,
                GL_FLOAT,
                (void*)&mouse_position);
+
+  {
+    float mx = (2.0f * (float)x) / geometry_buffer_pnc.width - 1.0f;
+    float my = 1.0f - (2.0f * (float)y) / geometry_buffer_pnc.height;
+    /*
+    XMVECTOR mouse_world = XMVector3Transform(mouse_clip, inverse);
+    XMVECTOR ray = XMVector3Normalize(mouse_world - view_state.eye);
+    mouse_ray_position = ray;
+
+    XMVECTOR ray_start = view_state.eye;
+    XMVECTOR ray_end = ray_start + ray * 20.0f;
+    */
+
+    XMVECTOR mouse_clip = XMVectorSet(mx, my, -1, 0);
+
+    XMMATRIX projection_inverse = XMMatrixInverse(NULL, current_projection());
+    XMMATRIX view_inverse = XMMatrixInverse(NULL, current_view());
+
+    XMVECTOR mouse_view = XMVector3Transform(mouse_clip, projection_inverse);
+    mouse_ray_position = mouse_view;
+
+    mouse_view = XMVectorSetZ(mouse_view, -1);
+    XMVECTOR ray = XMVector3Normalize(XMVector3TransformNormal(mouse_view, view_inverse));
+
+    XMVECTOR ray_start = view_state.eye;
+    XMVECTOR ray_end = ray_start + ray * 20.0f;
+
+    line_state.point[0].x = roundf(XMVectorGetX(ray_start));
+    line_state.point[0].z = roundf(XMVectorGetY(ray_start));
+    line_state.point[0].y = roundf(XMVectorGetZ(ray_start));
+
+    line_state.point[1].x = roundf(XMVectorGetX(ray_end));
+    line_state.point[1].z = roundf(XMVectorGetY(ray_end));
+    line_state.point[1].y = roundf(XMVectorGetZ(ray_end));
+    load_line();
+  }
 }
 
 void draw()
@@ -1011,7 +1084,7 @@ void draw()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   draw_minecraft();
-  draw_line();
+  //draw_line();
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
