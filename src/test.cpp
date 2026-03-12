@@ -598,13 +598,11 @@ void load(const char * source_path)
   load_textures();
   load_texture_id_uniform_buffer();
 
-  view::state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  view::state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
-  view::state.forward = XMVectorSet(-0.63, 0.78, 0, 0);
-  view::state.direction = view::state.forward;
-  view::state.pitch = -0.11;
+  //////////////////////////////////////////////////////////////////////
+  // view
+  //////////////////////////////////////////////////////////////////////
 
-  view::state.fov = 1.5;
+  view::load();
 
   //////////////////////////////////////////////////////////////////////
   // font
@@ -667,9 +665,9 @@ light_parameters lighting = {
 
 void update_keyboard(int up, int down, int left, int right)
 {
-  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view::state.forward, view::state.up));
-  view::state.eye += view::state.forward * (0.1f * up + -0.1f * down);
-  view::state.eye += normal * (-0.1f * left + 0.1f * right);
+  float forward = (0.1f * up + -0.1f * down);
+  float strafe = (-0.1f * left + 0.1f * right);
+  view::apply_translation(forward, strafe, 0);
 }
 
 const int max_joysticks = 8;
@@ -682,25 +680,13 @@ void update_joystick(int joystick_index,
                      int leftshoulder, int rightshoulder,
                      int start)
 {
-  //view::state.yaw += rx;
-  XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
+  float forward = -ly;
+  float strafe = lx;
+  float elevation = tl - tr;
+  view::apply_yaw_pitch(rx * -0.035, ry * -0.035);
+  view::apply_translation(forward, strafe, elevation);
+  view::apply_fov(0.01 * up + -0.01 * down);
 
-  view::state.forward = XMVector3Transform(XMVector3NormalizeEst(view::state.forward), mrz);
-  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view::state.forward, view::state.up));
-
-  view::state.pitch += ry * -0.035;
-  if (view::state.pitch > 1.57f) view::state.pitch = 1.57f;
-  if (view::state.pitch < -1.57f) view::state.pitch = -1.57f;
-
-  XMMATRIX mrn = XMMatrixRotationAxis(normal, view::state.pitch);
-  view::state.direction = XMVector3Transform(view::state.forward, mrn);
-
-  view::state.eye += view::state.forward * -ly + normal * lx + view::state.up * (tl - tr);
-
-  float new_fov = view::state.fov + 0.01 * up + -0.01 * down;
-  if (new_fov > 0.00001f) {
-    view::state.fov = new_fov;
-  }
   lighting.quadratic += 0.01 * a + -0.01 * b;
   if (lighting.quadratic < 0.0f)
     lighting.quadratic = 0.0f;

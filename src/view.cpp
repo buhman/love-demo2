@@ -1,22 +1,11 @@
 #include "directxmath/directxmath.h"
 
 #include "window.h"
+#include "view.h"
+
+constexpr bool third_person = false;
 
 namespace view {
-  struct view_state {
-    XMVECTOR up;
-    XMVECTOR eye;
-    XMVECTOR forward;
-    XMVECTOR direction;
-    float fov;
-    float pitch;
-
-    XMMATRIX projection_transform;
-    XMMATRIX view_transform;
-    XMMATRIX transform;
-    XMFLOAT4X4 float_transform;
-  };
-
   view_state state;
 
   static inline XMMATRIX current_projection()
@@ -31,9 +20,37 @@ namespace view {
 
   static inline XMMATRIX current_view()
   {
-    XMVECTOR at = XMVectorAdd(state.eye, state.direction);
-    XMMATRIX view = XMMatrixLookAtRH(state.eye, at, state.up);
+    state.at = XMVectorAdd(state.eye, state.direction);
+
+    XMMATRIX view = XMMatrixLookAtRH(state.eye, state.at, state.up);
     return view;
+  }
+
+  void apply_translation(float forward, float strafe, float elevation)
+  {
+    state.eye += state.forward * forward + state.normal * strafe + state.up * elevation;
+  }
+
+  void apply_yaw_pitch(float delta_yaw, float delta_pitch)
+  {
+    XMMATRIX mrz = XMMatrixRotationZ(delta_yaw);
+    state.forward = XMVector3Transform(state.forward, mrz);
+    state.normal = XMVector3NormalizeEst(XMVector3Cross(state.forward, state.up));
+
+    state.pitch += delta_pitch;
+    if (state.pitch > 1.57f) state.pitch = 1.57f;
+    if (state.pitch < -1.57f) state.pitch = -1.57f;
+
+    XMMATRIX mrn = XMMatrixRotationAxis(state.normal, state.pitch);
+    state.direction = XMVector3Transform(state.forward, mrn);
+  }
+
+  void apply_fov(float delta)
+  {
+    float new_fov = state.fov + delta;
+    if (new_fov > 0.00001f) {
+      state.fov = new_fov;
+    }
   }
 
   void update_transforms()
@@ -42,5 +59,18 @@ namespace view {
     state.view_transform = current_view();
     state.transform = state.view_transform * state.projection_transform;
     XMStoreFloat4x4(&state.float_transform, state.transform);
+  }
+
+  void load()
+  {
+    state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+    state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
+    state.forward = XMVector3Normalize(XMVectorSet(-0.63, 0.78, 0, 0));
+    state.direction = state.forward;
+    state.normal = XMVector3Normalize(XMVector3Cross(state.forward, state.up));
+
+    state.fov = 1.5;
+
+    state.pitch = 0;
   }
 }
