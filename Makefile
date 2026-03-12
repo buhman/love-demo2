@@ -28,7 +28,8 @@ OBJS = \
 	src/inthash.o \
 	src/non_block.o \
 	src/view.o \
-	src/minecraft.o
+	src/minecraft.o \
+	src/hud.o
 
 all: test.so
 

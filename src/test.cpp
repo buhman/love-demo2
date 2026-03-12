@@ -14,6 +14,7 @@
 #include "view.h"
 #include "non_block.h"
 #include "minecraft.h"
+#include "hud.h"
 
 struct line_location {
   struct {
@@ -59,17 +60,23 @@ struct lighting_location {
 static unsigned int lighting_program;
 static lighting_location lighting_location;
 
-static unsigned int empty_vertex_array_object = -1;
-static unsigned int quad_index_buffer = -1;
-
 static XMFLOAT3 mouse_position;
 static bool mouse_position_sample = true;
 static XMVECTOR mouse_ray_position;
 
-static float current_time;
-static float last_frame_time;
-
 static unsigned int light_uniform_buffer;
+
+//////////////////////////////////////////////////////////////////////
+// globals
+//////////////////////////////////////////////////////////////////////
+
+unsigned int empty_vertex_array_object = -1;
+unsigned int quad_index_buffer = -1;
+
+float current_time;
+float last_frame_time;
+
+font::font * terminus_fonts;
 
 void load_quad_index_buffer()
 {
@@ -83,8 +90,6 @@ void load_quad_index_buffer()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-  glGenVertexArrays(1, &empty_vertex_array_object);
 }
 
 void load_quad_program()
@@ -214,8 +219,6 @@ void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer,
 extern "C" {
   void * SDL_GL_GetProcAddress(const char *proc);
 }
-
-font::font * terminus_fonts;
 
 struct short_point {
   short x;
@@ -374,6 +377,7 @@ void load(const char * source_path)
   // quad
   //////////////////////////////////////////////////////////////////////
 
+  glGenVertexArrays(1, &empty_vertex_array_object);
   load_quad_program();
   load_quad_index_buffer();
 
@@ -465,104 +469,6 @@ void update(float time)
   current_time = time;
 
   view::update_transforms();
-}
-
-template <typename T>
-void labeled_value(char * const buf, char const * const label, char const * const format, T value)
-{
-  const int label_length = strlen(label);
-  memcpy(buf, label, label_length);
-  int len = snprintf(&buf[label_length], 511 - label_length, format, value);
-  buf[label_length + len] = 0;
-}
-
-inline static float draw_vector(font::font const& ter_best, char * const buf, float y, char const * const label, XMVECTOR vec)
-{
-  labeled_value<float>(buf, label, ".x: %.2f", XMVectorGetX(vec));
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-  labeled_value<float>(buf, label, ".y: %.2f", XMVectorGetY(vec));
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-  labeled_value<float>(buf, label, ".z: %.2f", XMVectorGetZ(vec));
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-  return y;
-}
-
-static int average_init = 0;
-static int average_ix = 0;
-static float rolling_sum = 0;
-static float averages[16] = {};
-
-const int frame_warmup = 10;
-
-float update_average(float value)
-{
-  if (average_init < frame_warmup) {
-    average_init += 1;
-    return 0.0f;
-  }
-  if (average_init == frame_warmup) {
-    assert(average_ix == 0);
-    rolling_sum = value * 16.0f;
-    for (int i = 0; i < 16; i++) {
-      averages[i] = value;
-    }
-    average_init += 1;
-  } else {
-    rolling_sum -= averages[average_ix];
-    rolling_sum += value;
-
-    averages[average_ix] = value;
-    average_ix = (average_ix + 1) % 16;
-  }
-
-  return rolling_sum * (1.0f / 16.0f);
-}
-
-void draw_hud()
-{
-  char buf[512];
-
-  float y = 10.0f;
-
-  int font_ix = font::best_font(font::terminus, font::terminus_length);
-  font::font const& ter_best = terminus_fonts[font_ix];
-
-  font::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
-
-  labeled_value<float>(buf, "fov: ", "%.3f", view::state.fov);
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-
-  labeled_value<int>(buf, "font_height: ", "%d", ter_best.desc->glyph_height);
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-
-  labeled_value<float>(buf, "lighting.quadratic: ", "%.2f", lighting.quadratic);
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-
-  labeled_value<float>(buf, "lighting.linear: ", "%.2f", lighting.linear);
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-
-  y = draw_vector(ter_best, buf, y, "eye", view::state.eye);
-  y = draw_vector(ter_best, buf, y, "forward", view::state.forward);
-
-  labeled_value<float>(buf, "pitch: ", "%.9f", view::state.pitch);
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
-
-  XMVECTOR position = XMLoadFloat3(&mouse_position);
-  y = draw_vector(ter_best, buf, y, "mouse_position", position);
-
-  y = draw_vector(ter_best, buf, y, "mouse_ray_position", mouse_ray_position);
-
-  labeled_value<float>(buf, "frame_rate_avg: ", "%.2f", 1.0f / update_average(current_time - last_frame_time));
-  font::draw_string(ter_best, buf, 10, y);
-  y += ter_best.desc->glyph_height;
 }
 
 void draw_quad()
@@ -752,7 +658,7 @@ void draw()
 
   draw_lighting();
   //draw_quad();
-  draw_hud();
+  hud::draw();
 
   last_frame_time = current_time;
 }
