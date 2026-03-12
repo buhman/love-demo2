@@ -25,7 +25,9 @@ OBJS = \
 	src/bresenham.o \
 	src/file.o \
 	src/world.o \
-	src/inthash.o
+	src/inthash.o \
+	src/non_block.o \
+	src/view.o
 
 all: test.so
 

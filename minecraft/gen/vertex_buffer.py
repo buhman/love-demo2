@@ -2,6 +2,7 @@ import struct
 import vec3
 import obj
 import obj_state
+import obj_write
 import sys
 
 normals = [
@@ -35,49 +36,28 @@ def build_configuration_index_buffers(f, faces_by_normal, index_buffer):
         if i % 8 == 7:
             print()
 
-def build_vertex_buffer(f, vertex_buffer):
-    for position, normal, texture in vertex_buffer:
-        position = vec3.mul(position, 0.5)
-        f.write(struct.pack("<eeeeeeee", *position, *normal, *texture))
-
-def write_indices(f, index_buffer, start, count):
-    for i in range(count):
-        f.write(struct.pack("<B", index_buffer[start + i]))
-
-def write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, path):
-    index_start = len(index_buffer)
-    state = obj.parse_obj_from_filename(path)
-    obj_state.append_triangles(state, vertex_buffer, index_buffer, index_lookup)
-    index_count = len(index_buffer) - index_start
-    write_indices(f, index_buffer, index_start, index_count)
-    print(f"{index_start}, {index_count}, // {path}")
-
 def main():
-    cube_index_buffer = []
-    cube_index_lookup = {}
-
     vertex_buffer = []
     index_buffer = []
     index_lookup = {}
 
     cube_state = obj.parse_obj_from_filename("cube.obj")
 
-    obj_state.append_triangles(cube_state, vertex_buffer, cube_index_buffer, cube_index_lookup)
-    cube_faces_by_normal = obj_state.build_faces_by_normal(vertex_buffer, cube_index_buffer)
+    tmp_index_buffer = [] # discarded
+    obj_state.append_triangles(cube_state, vertex_buffer, tmp_index_buffer, index_lookup)
+    cube_faces_by_normal = obj_state.build_faces_by_normal(vertex_buffer, tmp_index_buffer)
+
+    build_configuration_index_buffers(f, cube_faces_by_normal, index_buffer)
+    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "tallgrass.obj")
+    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "fence.obj")
+    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "torch.obj")
+    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "wheat.obj")
 
     with open("../configuration.idx", "wb") as f:
-        build_configuration_index_buffers(f, cube_faces_by_normal, index_buffer)
-        index_lookup = {}
-        write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "tallgrass.obj")
-        index_lookup = {}
-        write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "fence.obj")
-        index_lookup = {}
-        write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "torch.obj")
-        index_lookup = {}
-        write_custom_obj(f, vertex_buffer, index_buffer, index_lookup, "wheat.obj")
+        obj_write.write_indices(f, "<B", index_buffer)
 
     with open("../per_vertex.vtx", "wb") as f:
-        build_vertex_buffer(f, vertex_buffer)
+        obj_write.write_vertex_buffer(f, vertex_buffer)
 
 if __name__ == "__main__":
     main()

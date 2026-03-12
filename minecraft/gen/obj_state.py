@@ -4,11 +4,11 @@ import obj
 def append_triangles(state, vertex_buffer, index_buffer, index_lookup):
     for triangle in state.triangle:
         for p_ix, t_ix, n_ix in triangle:
-            key = (p_ix, n_ix, t_ix)
+            position = state.position[p_ix]
+            normal = state.normal[n_ix]
+            texture = state.texture[t_ix]
+            key = (position, normal, texture)
             if key not in index_lookup:
-                position = state.position[p_ix]
-                normal = state.normal[n_ix]
-                texture = state.texture[t_ix]
                 index = len(vertex_buffer)
                 index_lookup[key] = index
                 vertex_buffer.append((position, normal, texture))

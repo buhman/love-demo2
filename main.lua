@@ -98,7 +98,7 @@ function love.run()
       draw()
 
       local x, y = love.mouse.getPosition()
-      test.update_mouse(x, y)
+      --test.update_mouse(x, y)
 
       love.graphics.present()
       love.timer.sleep(0.001)

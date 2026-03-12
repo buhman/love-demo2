@@ -85,7 +85,7 @@ namespace font {
 
   int best_font(font_desc const * const descs, int length)
   {
-    int dimension = min(g_window_width, g_window_height);
+    int dimension = min(window::width, window::height);
     int ideal_height = (16 * dimension) / 1024;
     //printf("ideal_height: %d\n", ideal_height);
     int nearest = dimension;
@@ -126,7 +126,7 @@ namespace font {
     XMMATRIX transform =
       XMMatrixScaling(font.desc->glyph_width, font.desc->glyph_height, 0)
       * XMMatrixTranslation(x, -y, 0)
-      * XMMatrixScaling(2.0f / g_window_width, 2.0f / g_window_height, 0)
+      * XMMatrixScaling(2.0f / window::width, 2.0f / window::height, 0)
       * XMMatrixTranslation(-1, 1, 0);
     XMFLOAT4X4 transformf;
     XMStoreFloat4x4(&transformf, transform);

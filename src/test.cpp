@@ -11,6 +11,8 @@
 #include "bresenham.h"
 #include "file.h"
 #include "world.h"
+#include "view.h"
+#include "non_block.h"
 
 #include "data.inc"
 
@@ -342,8 +344,8 @@ static target_type const geometry_buffer_pnc_types[3] = {
 template <int render_target_count>
 void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer, target_type const * const types)
 {
-  int width = g_window_width;
-  int height = g_window_height;
+  int width = window::width;
+  int height = window::height;
 
   if ((geometry_buffer.initialized == 1) && (width == geometry_buffer.width) && (height == geometry_buffer.height)) {
     return;
@@ -463,17 +465,6 @@ extern "C" {
   void * SDL_GL_GetProcAddress(const char *proc);
 }
 
-struct view_state {
-  XMVECTOR up;
-  XMVECTOR eye;
-  XMVECTOR forward;
-  XMVECTOR direction;
-  float fov;
-  float pitch;
-};
-
-view_state view_state;
-
 font::font * terminus_fonts;
 
 struct short_point {
@@ -582,9 +573,9 @@ void load_line()
 
 void load_line_point_from_eye(int point_ix)
 {
-  int x = XMVectorGetX(view_state.eye);
-  int y = XMVectorGetY(view_state.eye);
-  int z = XMVectorGetZ(view_state.eye);
+  int x = XMVectorGetX(view::state.eye);
+  int y = XMVectorGetY(view::state.eye);
+  int z = XMVectorGetZ(view::state.eye);
 
   line_state.point[point_ix].x = x;
   line_state.point[point_ix].y = z;
@@ -607,13 +598,13 @@ void load(const char * source_path)
   load_textures();
   load_texture_id_uniform_buffer();
 
-  view_state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  view_state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
-  view_state.forward = XMVectorSet(-0.63, 0.78, 0, 0);
-  view_state.direction = view_state.forward;
-  view_state.pitch = -0.11;
+  view::state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+  view::state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
+  view::state.forward = XMVectorSet(-0.63, 0.78, 0, 0);
+  view::state.direction = view::state.forward;
+  view::state.pitch = -0.11;
 
-  view_state.fov = 1.5;
+  view::state.fov = 1.5;
 
   //////////////////////////////////////////////////////////////////////
   // font
@@ -652,6 +643,15 @@ void load(const char * source_path)
   //////////////////////////////////////////////////////////////////////
 
   load_world();
+
+  //////////////////////////////////////////////////////////////////////
+  // non_block
+  //////////////////////////////////////////////////////////////////////
+
+  non_block::load_program();
+  non_block::load_index_buffer();
+  non_block::load_per_vertex_buffer();
+  non_block::load_vertex_attributes();
 }
 
 float _ry = 0.0;
@@ -667,9 +667,9 @@ light_parameters lighting = {
 
 void update_keyboard(int up, int down, int left, int right)
 {
-  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
-  view_state.eye += view_state.forward * (0.1f * up + -0.1f * down);
-  view_state.eye += normal * (-0.1f * left + 0.1f * right);
+  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view::state.forward, view::state.up));
+  view::state.eye += view::state.forward * (0.1f * up + -0.1f * down);
+  view::state.eye += normal * (-0.1f * left + 0.1f * right);
 }
 
 const int max_joysticks = 8;
@@ -682,24 +682,24 @@ void update_joystick(int joystick_index,
                      int leftshoulder, int rightshoulder,
                      int start)
 {
-  //view_state.yaw += rx;
+  //view::state.yaw += rx;
   XMMATRIX mrz = XMMatrixRotationZ(rx * -0.035);
 
-  view_state.forward = XMVector3Transform(XMVector3NormalizeEst(view_state.forward), mrz);
-  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view_state.forward, view_state.up));
+  view::state.forward = XMVector3Transform(XMVector3NormalizeEst(view::state.forward), mrz);
+  XMVECTOR normal = XMVector3NormalizeEst(XMVector3Cross(view::state.forward, view::state.up));
 
-  view_state.pitch += ry * -0.035;
-  if (view_state.pitch > 1.57f) view_state.pitch = 1.57f;
-  if (view_state.pitch < -1.57f) view_state.pitch = -1.57f;
+  view::state.pitch += ry * -0.035;
+  if (view::state.pitch > 1.57f) view::state.pitch = 1.57f;
+  if (view::state.pitch < -1.57f) view::state.pitch = -1.57f;
 
-  XMMATRIX mrn = XMMatrixRotationAxis(normal, view_state.pitch);
-  view_state.direction = XMVector3Transform(view_state.forward, mrn);
+  XMMATRIX mrn = XMMatrixRotationAxis(normal, view::state.pitch);
+  view::state.direction = XMVector3Transform(view::state.forward, mrn);
 
-  view_state.eye += view_state.forward * -ly + normal * lx + view_state.up * (tl - tr);
+  view::state.eye += view::state.forward * -ly + normal * lx + view::state.up * (tl - tr);
 
-  float new_fov = view_state.fov + 0.01 * up + -0.01 * down;
+  float new_fov = view::state.fov + 0.01 * up + -0.01 * down;
   if (new_fov > 0.00001f) {
-    view_state.fov = new_fov;
+    view::state.fov = new_fov;
   }
   lighting.quadratic += 0.01 * a + -0.01 * b;
   if (lighting.quadratic < 0.0f)
@@ -724,6 +724,8 @@ void update_joystick(int joystick_index,
 void update(float time)
 {
   current_time = time;
+
+  view::update_transforms();
 }
 
 static inline int popcount(int x)
@@ -796,7 +798,7 @@ void draw_hud()
 
   font::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
 
-  labeled_value<float>(buf, "fov: ", "%.3f", view_state.fov);
+  labeled_value<float>(buf, "fov: ", "%.3f", view::state.fov);
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 
@@ -812,10 +814,10 @@ void draw_hud()
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 
-  y = draw_vector(ter_best, buf, y, "eye", view_state.eye);
-  y = draw_vector(ter_best, buf, y, "forward", view_state.forward);
+  y = draw_vector(ter_best, buf, y, "eye", view::state.eye);
+  y = draw_vector(ter_best, buf, y, "forward", view::state.forward);
 
-  labeled_value<float>(buf, "pitch: ", "%.9f", view_state.pitch);
+  labeled_value<float>(buf, "pitch: ", "%.9f", view::state.pitch);
   font::draw_string(ter_best, buf, 10, y);
   y += ter_best.desc->glyph_height;
 
@@ -829,33 +831,8 @@ void draw_hud()
   y += ter_best.desc->glyph_height;
 }
 
-static inline XMMATRIX current_projection()
-{
-  float fov_angle_y = XMConvertToRadians(45 * view_state.fov);
-  float aspect_ratio = g_window_width / g_window_height;
-  float near_z = 1.0;
-  float far_z = 0.1;
-  XMMATRIX projection = XMMatrixPerspectiveFovRH(fov_angle_y, aspect_ratio, near_z, far_z);
-  return projection;
-}
-
-static inline XMMATRIX current_view()
-{
-  XMVECTOR at = XMVectorAdd(view_state.eye, view_state.direction);
-  XMMATRIX view = XMMatrixLookAtRH(view_state.eye, at, view_state.up);
-  return view;
-}
-
-static inline XMMATRIX current_view_projection()
-{
-  return current_view() * current_projection();
-}
-
 void draw_minecraft()
 {
-  // possibly re-initialize geometry buffer if window width/height changes
-  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
-
   glUseProgram(test_program);
 
   glBlendFunc(GL_ONE, GL_ZERO);
@@ -865,8 +842,7 @@ void draw_minecraft()
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  XMMATRIX transform = current_view_projection();
-  glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&transform);
+  glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&view::state.float_transform);
   glUniform1i(test_location.uniform.terrain_sampler, 0);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, test_location.binding.texture_id, texture_id_uniform_buffer);
@@ -960,7 +936,7 @@ void draw_lighting()
 
 
   XMFLOAT3 eye;
-  XMStoreFloat3(&eye, view_state.eye);
+  XMStoreFloat3(&eye, view::state.eye);
   glUniform3fv(lighting_location.uniform.eye, 1, (float*)&eye);
   glUniform3fv(lighting_location.uniform.mouse_position, 1, (float*)&mouse_position);
   /*
@@ -988,8 +964,7 @@ void draw_line()
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_ALWAYS);
 
-  XMMATRIX transform = current_view_projection();
-  glUniformMatrix4fv(line_location.uniform.transform, 1, false, (float *)&transform);
+  glUniformMatrix4fv(line_location.uniform.transform, 1, false, (float *)&view::state.float_transform);
 
   //glEnable(GL_CULL_FACE);
   //glCullFace(GL_FRONT);
@@ -1028,6 +1003,7 @@ void update_mouse(int x, int y)
   glBindFramebuffer(GL_READ_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
   glReadBuffer(geometry_buffer_pnc_types[target_name::POSITION].attachment);
 
+  /*
   x = clamp(x, geometry_buffer_pnc.width);
   y = clamp(y, geometry_buffer_pnc.height);
   glReadPixels(x,
@@ -1037,23 +1013,24 @@ void update_mouse(int x, int y)
                GL_RGB,
                GL_FLOAT,
                (void*)&mouse_position);
+  */
 
   {
     float mx = (2.0f * (float)x) / geometry_buffer_pnc.width - 1.0f;
     float my = 1.0f - (2.0f * (float)y) / geometry_buffer_pnc.height;
     /*
     XMVECTOR mouse_world = XMVector3Transform(mouse_clip, inverse);
-    XMVECTOR ray = XMVector3Normalize(mouse_world - view_state.eye);
+    XMVECTOR ray = XMVector3Normalize(mouse_world - view::state.eye);
     mouse_ray_position = ray;
 
-    XMVECTOR ray_start = view_state.eye;
+    XMVECTOR ray_start = view::state.eye;
     XMVECTOR ray_end = ray_start + ray * 20.0f;
     */
 
     XMVECTOR mouse_clip = XMVectorSet(mx, my, -1, 0);
 
-    XMMATRIX projection_inverse = XMMatrixInverse(NULL, current_projection());
-    XMMATRIX view_inverse = XMMatrixInverse(NULL, current_view());
+    XMMATRIX projection_inverse = XMMatrixInverse(NULL, view::state.projection_transform);
+    XMMATRIX view_inverse = XMMatrixInverse(NULL, view::state.view_transform);
 
     XMVECTOR mouse_view = XMVector3Transform(mouse_clip, projection_inverse);
     mouse_ray_position = mouse_view;
@@ -1061,7 +1038,7 @@ void update_mouse(int x, int y)
     mouse_view = XMVectorSetZ(mouse_view, -1);
     XMVECTOR ray = XMVector3Normalize(XMVector3TransformNormal(mouse_view, view_inverse));
 
-    XMVECTOR ray_start = view_state.eye;
+    XMVECTOR ray_start = view::state.eye;
     XMVECTOR ray_end = ray_start + ray * 20.0f;
 
     line_state.point[0].x = roundf(XMVectorGetX(ray_start));
@@ -1080,11 +1057,15 @@ void draw()
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glClearDepth(-1.0f);
 
+  // possibly re-initialize geometry buffer if window width/height changes
+  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
+
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   draw_minecraft();
   //draw_line();
+  non_block::draw();
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
