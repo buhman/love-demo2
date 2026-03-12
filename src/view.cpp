@@ -6,7 +6,7 @@
 constexpr bool third_person = false;
 
 namespace view {
-  view_state state;
+  view_state state = {};
 
   static inline XMMATRIX current_projection()
   {
@@ -20,29 +20,57 @@ namespace view {
 
   static inline XMMATRIX current_view()
   {
-    state.at = XMVectorAdd(state.eye, state.direction);
-
     XMMATRIX view = XMMatrixLookAtRH(state.eye, state.at, state.up);
     return view;
   }
 
-  void apply_translation(float forward, float strafe, float elevation)
+  static inline float clamp_pitch(float delta_pitch)
   {
-    state.eye += state.forward * forward + state.normal * strafe + state.up * elevation;
+    float pitch = state.pitch + delta_pitch;
+    if (pitch > 1.57f) pitch = 1.57f;
+    if (pitch < -1.57f) pitch = -1.57f;
+    return pitch;
   }
 
-  void apply_yaw_pitch(float delta_yaw, float delta_pitch)
+  static inline XMVECTOR get_normal()
   {
-    XMMATRIX mrz = XMMatrixRotationZ(delta_yaw);
-    state.forward = XMVector3Transform(state.forward, mrz);
-    state.normal = XMVector3NormalizeEst(XMVector3Cross(state.forward, state.up));
+    return XMVector3NormalizeEst(XMVector3Cross(state.forward, state.up));
+  }
 
-    state.pitch += delta_pitch;
-    if (state.pitch > 1.57f) state.pitch = 1.57f;
-    if (state.pitch < -1.57f) state.pitch = -1.57f;
-
+  static inline XMVECTOR get_direction()
+  {
     XMMATRIX mrn = XMMatrixRotationAxis(state.normal, state.pitch);
-    state.direction = XMVector3Transform(state.forward, mrn);
+    return XMVector3Transform(state.forward, mrn);
+  }
+
+  namespace first_person {
+    void apply_transform(float forward, float strafe, float elevation,
+                         float delta_yaw, float delta_pitch)
+    {
+      state.pitch = clamp_pitch(delta_pitch);
+
+      state.forward = XMVector3Transform(state.forward, XMMatrixRotationZ(delta_yaw));
+      state.normal = get_normal(); // on forward change
+      state.direction = get_direction(); // on forward/normal/pitch change
+
+      state.eye += state.forward * forward + state.normal * strafe + state.up * elevation;
+      state.at = state.eye + state.direction * 4;
+    }
+  }
+
+  namespace third_person {
+    void apply_transform(float forward, float strafe, float elevation,
+                         float delta_yaw, float delta_pitch)
+    {
+      state.pitch = clamp_pitch(delta_pitch);
+
+      state.forward = XMVector3Transform(state.forward, XMMatrixRotationZ(delta_yaw));
+      state.normal = get_normal(); // on forward change
+      state.direction = get_direction(); // on forward/normal/pitch change
+
+      state.at += state.forward * forward + state.normal * strafe + state.up * elevation;
+      state.eye = state.at - state.direction * 4;
+    }
   }
 
   void apply_fov(float delta)
@@ -64,13 +92,16 @@ namespace view {
   void load()
   {
     state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-    state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
-    state.forward = XMVector3Normalize(XMVectorSet(-0.63, 0.78, 0, 0));
-    state.direction = state.forward;
-    state.normal = XMVector3Normalize(XMVector3Cross(state.forward, state.up));
 
     state.fov = 1.5;
-
     state.pitch = 0;
+
+    state.forward = XMVector3Normalize(XMVectorSet(-0.63, 0.78, 0, 0));
+    state.normal = get_normal(); // on forward change
+    state.direction = get_direction(); // on forward/normal/pitch change
+
+    // position
+    state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
+    state.at = state.eye + state.direction * 4;
   }
 }

@@ -27,8 +27,6 @@ void update(float time);
 end
 
 local update = function(time)
-   test.update(time)
-
    for joystick_index, joystick in ipairs(joysticks) do
       if joystick_index > 8 then
          break
@@ -64,6 +62,8 @@ local update = function(time)
    local left = love.keyboard.isDown("left")
    local right = love.keyboard.isDown("right")
    test.update_keyboard(up, down, left, right);
+
+   test.update(time)
 end
 
 local draw = function()

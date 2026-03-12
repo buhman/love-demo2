@@ -112,7 +112,7 @@ namespace non_block {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_GREATER);
 
-    XMVECTOR offset = view::state.eye + view::state.forward * 4.0f;
+    XMVECTOR offset = view::state.at;
     XMMATRIX world_transform = XMMatrixTranslationFromVector(offset);
     XMMATRIX transform = world_transform * view::state.transform;
     XMFLOAT4X4 float_world_transform;

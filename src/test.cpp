@@ -665,9 +665,9 @@ light_parameters lighting = {
 
 void update_keyboard(int up, int down, int left, int right)
 {
-  float forward = (0.1f * up + -0.1f * down);
-  float strafe = (-0.1f * left + 0.1f * right);
-  view::apply_translation(forward, strafe, 0);
+  //float forward = (0.1f * up + -0.1f * down);
+  //float strafe = (-0.1f * left + 0.1f * right);
+  //view::third_person::apply_translation(forward, strafe, 0);
 }
 
 const int max_joysticks = 8;
@@ -680,11 +680,13 @@ void update_joystick(int joystick_index,
                      int leftshoulder, int rightshoulder,
                      int start)
 {
-  float forward = -ly;
-  float strafe = lx;
-  float elevation = tl - tr;
-  view::apply_yaw_pitch(rx * -0.035, ry * -0.035);
-  view::apply_translation(forward, strafe, elevation);
+  float forward = -ly * 0.5;
+  float strafe = lx * 0.5;
+  float elevation = (tl - tr) * 0.5;
+  float delta_yaw = rx * -0.035;
+  float delta_pitch = ry * -0.035;
+  view::third_person::apply_transform(forward, strafe, elevation,
+                                      delta_yaw, delta_pitch);
   view::apply_fov(0.01 * up + -0.01 * down);
 
   lighting.quadratic += 0.01 * a + -0.01 * b;
