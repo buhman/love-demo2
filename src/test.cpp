@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "geometry_buffer.h"
 #include "glad/gl.h"
 #include "opengl.h"
 #include "directxmath/directxmath.h"
@@ -15,6 +16,7 @@
 #include "non_block.h"
 #include "minecraft.h"
 #include "hud.h"
+#include "lighting.h"
 
 struct line_location {
   struct {
@@ -40,32 +42,6 @@ struct quad_location {
 static unsigned int quad_program;
 static quad_location quad_location;
 
-struct lighting_location {
-  struct {
-    unsigned int position_sampler;
-    unsigned int normal_sampler;
-    unsigned int color_sampler;
-    unsigned int quadratic;
-    unsigned int linear;
-    unsigned int eye;
-    unsigned int mouse_position;
-    unsigned int mouse_position2;
-
-    unsigned int lights;
-  } uniform;
-  struct {
-    unsigned int lights;
-  } binding;
-};
-static unsigned int lighting_program;
-static lighting_location lighting_location;
-
-static XMFLOAT3 mouse_position;
-static bool mouse_position_sample = true;
-static XMVECTOR mouse_ray_position;
-
-static unsigned int light_uniform_buffer;
-
 //////////////////////////////////////////////////////////////////////
 // globals
 //////////////////////////////////////////////////////////////////////
@@ -77,6 +53,13 @@ float current_time;
 float last_frame_time;
 
 font::font * terminus_fonts;
+
+geometry_buffer<3> geometry_buffer_pnc = {};
+static target_type const geometry_buffer_pnc_types[3] = {
+  [target_name::POSITION] = { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
+  [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
+  [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
+};
 
 void load_quad_index_buffer()
 {
@@ -104,116 +87,6 @@ void load_quad_program()
          quad_location.uniform.texture_sampler);
 
   quad_program = program;
-}
-
-void load_lighting_program()
-{
-  unsigned int program = compile_from_files("shader/quad.vert",
-                                            NULL,
-                                            "shader/lighting.frag");
-
-  lighting_location.uniform.position_sampler = glGetUniformLocation(program, "PositionSampler");
-  lighting_location.uniform.normal_sampler = glGetUniformLocation(program, "NormalSampler");
-  lighting_location.uniform.color_sampler = glGetUniformLocation(program, "ColorSampler");
-  lighting_location.uniform.quadratic = glGetUniformLocation(program, "Quadratic");
-  lighting_location.uniform.linear = glGetUniformLocation(program, "Linear");
-  lighting_location.uniform.eye = glGetUniformLocation(program, "Eye");
-  lighting_location.uniform.mouse_position = glGetUniformLocation(program, "MousePosition");
-  lighting_location.uniform.mouse_position2 = glGetUniformLocation(program, "MousePosition2");
-  lighting_location.uniform.lights = glGetUniformBlockIndex(program, "Lights");
-
-  fprintf(stderr, "lighting program:\n");
-  fprintf(stderr, " uniforms:\n  position_sampler %u  normal_sampler %u  color_sampler %u  lights %u\n",
-          lighting_location.uniform.position_sampler,
-          lighting_location.uniform.normal_sampler,
-          lighting_location.uniform.color_sampler,
-          lighting_location.uniform.lights);
-
-  lighting_location.binding.lights = 0;
-  glUniformBlockBinding(program, lighting_location.uniform.lights, lighting_location.binding.lights);
-
-  lighting_program = program;
-}
-
-void load_light_uniform_buffer()
-{
-  light_uniform_buffer = load_uniform_buffer("minecraft/global.lights.vtx");
-}
-
-struct target_name {
-  enum {
-    POSITION = 0,
-    NORMAL = 1,
-    COLOR = 2,
-  };
-};
-
-template <int render_target_count>
-struct geometry_buffer {
-  unsigned int framebuffer;
-  unsigned int target[render_target_count]; // textures
-  unsigned int renderbuffer;
-  int initialized;
-  int width;
-  int height;
-};
-
-struct target_type {
-  GLint internal_format;
-  GLenum attachment;
-};
-
-static geometry_buffer<3> geometry_buffer_pnc = {};
-static target_type const geometry_buffer_pnc_types[3] = {
-  [target_name::POSITION] = { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
-  [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
-  [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
-};
-
-template <int render_target_count>
-void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer, target_type const * const types)
-{
-  int width = window::width;
-  int height = window::height;
-
-  if ((geometry_buffer.initialized == 1) && (width == geometry_buffer.width) && (height == geometry_buffer.height)) {
-    return;
-  }
-
-  if (geometry_buffer.initialized) {
-    glDeleteFramebuffers(1, &geometry_buffer.framebuffer);
-    glDeleteTextures(render_target_count, geometry_buffer.target);
-    glDeleteRenderbuffers(1, &geometry_buffer.renderbuffer);
-  }
-  glGenFramebuffers(1, &geometry_buffer.framebuffer);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer.framebuffer);
-
-  glGenTextures(render_target_count, geometry_buffer.target);
-  for (int i = 0; i < render_target_count; i++) {
-    glBindTexture(GL_TEXTURE_2D, geometry_buffer.target[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, types[i].internal_format, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, types[i].attachment, GL_TEXTURE_2D, geometry_buffer.target[i], 0);
-  }
-  static_assert(render_target_count == 3);
-  GLenum attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-  glDrawBuffers(3, attachments); // bound to GL_DRAW_FRAMEBUFFER
-
-  glGenRenderbuffers(1, &geometry_buffer.renderbuffer);
-  glBindRenderbuffer(GL_RENDERBUFFER, geometry_buffer.renderbuffer);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, geometry_buffer.renderbuffer);
-
-  assert(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-  geometry_buffer.initialized = 1;
-  geometry_buffer.width = width;
-  geometry_buffer.height = height;
 }
 
 extern "C" {
@@ -385,8 +258,8 @@ void load(const char * source_path)
   // lighting
   //////////////////////////////////////////////////////////////////////
 
-  load_lighting_program();
-  load_light_uniform_buffer();
+  lighting::load_program();
+  lighting::load_light_uniform_buffer();
 
   //////////////////////////////////////////////////////////////////////
   // line
@@ -407,17 +280,6 @@ void load(const char * source_path)
   non_block::load_vertex_attributes();
 }
 
-float _ry = 0.0;
-
-struct light_parameters {
-  float quadratic;
-  float linear;
-};
-light_parameters lighting = {
-  .quadratic = 1.0,
-  .linear = 1.0
-};
-
 void update_keyboard(int up, int down, int left, int right)
 {
   //float forward = (0.1f * up + -0.1f * down);
@@ -426,7 +288,6 @@ void update_keyboard(int up, int down, int left, int right)
 }
 
 const int max_joysticks = 8;
-static int last_frame_start[max_joysticks] = {};
 
 void update_joystick(int joystick_index,
                      float lx, float ly, float rx, float ry, float tl, float tr,
@@ -444,12 +305,14 @@ void update_joystick(int joystick_index,
                                       delta_yaw, delta_pitch);
   view::apply_fov(0.01 * up + -0.01 * down);
 
+  /*
   lighting.quadratic += 0.01 * a + -0.01 * b;
   if (lighting.quadratic < 0.0f)
     lighting.quadratic = 0.0f;
   lighting.linear += 0.01 * x + -0.01 * y;
   if (lighting.linear < 0.0f)
     lighting.linear = 0.0f;
+  */
 
   if (leftshoulder) {
     load_line_point_from_eye(0);
@@ -457,11 +320,6 @@ void update_joystick(int joystick_index,
   if (rightshoulder) {
     load_line_point_from_eye(1);
   }
-  if (start && (start != last_frame_start[joystick_index])) {
-    mouse_position_sample = !mouse_position_sample;
-    printf("mouse_position_sample: %d\n", mouse_position_sample);
-  }
-  last_frame_start[joystick_index] = start;
 }
 
 void update(float time)
@@ -480,51 +338,6 @@ void draw_quad()
   glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[1]);
 
   glUniform1i(quad_location.uniform.texture_sampler, 0);
-
-  glBindVertexArray(empty_vertex_array_object);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
-
-  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
-}
-
-static inline bool near_zero(float a)
-{
-  return (fabsf(a) < 0.00001f);
-}
-
-void draw_lighting()
-{
-  glUseProgram(lighting_program);
-  glDepthFunc(GL_ALWAYS);
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[0]);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[1]);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, geometry_buffer_pnc.target[2]);
-
-  glUniform1i(lighting_location.uniform.position_sampler, 0);
-  glUniform1i(lighting_location.uniform.normal_sampler, 1);
-  glUniform1i(lighting_location.uniform.color_sampler, 2);
-
-  float quadratic = near_zero(lighting.quadratic) ? 0.0 : 1.0f / lighting.quadratic;
-  float linear = near_zero(lighting.linear) ? 0.0 : 1.0f / lighting.linear;
-  glUniform1f(lighting_location.uniform.quadratic, quadratic);
-  glUniform1f(lighting_location.uniform.linear, linear);
-
-
-  XMFLOAT3 eye;
-  XMStoreFloat3(&eye, view::state.eye);
-  glUniform3fv(lighting_location.uniform.eye, 1, (float*)&eye);
-  glUniform3fv(lighting_location.uniform.mouse_position, 1, (float*)&mouse_position);
-  /*
-  printf("m0: %f %f %f\nm1: %f %f %f\n",
-         mouse_position.x, mouse_position.y, mouse_position.z,
-         position2.x, position2.y, position2.z);
-  */
-
-  glBindBufferBase(GL_UNIFORM_BUFFER, lighting_location.binding.lights, light_uniform_buffer);
 
   glBindVertexArray(empty_vertex_array_object);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
@@ -583,9 +396,6 @@ int clamp(int n, int high)
 
 void update_mouse(int x, int y)
 {
-  if (!mouse_position_sample)
-    return;
-
   glBindFramebuffer(GL_READ_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
   glReadBuffer(geometry_buffer_pnc_types[target_name::POSITION].attachment);
 
@@ -619,7 +429,6 @@ void update_mouse(int x, int y)
     XMMATRIX view_inverse = XMMatrixInverse(NULL, view::state.view_transform);
 
     XMVECTOR mouse_view = XMVector3Transform(mouse_clip, projection_inverse);
-    mouse_ray_position = mouse_view;
 
     mouse_view = XMVectorSetZ(mouse_view, -1);
     XMVECTOR ray = XMVector3Normalize(XMVector3TransformNormal(mouse_view, view_inverse));
@@ -656,7 +465,7 @@ void draw()
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  draw_lighting();
+  lighting::draw();
   //draw_quad();
   hud::draw();
 

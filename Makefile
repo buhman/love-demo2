@@ -29,7 +29,8 @@ OBJS = \
 	src/non_block.o \
 	src/view.o \
 	src/minecraft.o \
-	src/hud.o
+	src/hud.o \
+	src/lighting.o
 
 all: test.so
 
