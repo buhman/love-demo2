@@ -27,7 +27,8 @@ OBJS = \
 	src/world.o \
 	src/inthash.o \
 	src/non_block.o \
-	src/view.o
+	src/view.o \
+	src/minecraft.o
 
 all: test.so
 

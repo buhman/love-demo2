@@ -107,3 +107,21 @@ unsigned int compile_from_files(const char * vertex_path,
 
   return program;
 }
+
+unsigned int load_uniform_buffer(char const * const path)
+{
+  unsigned int buffer;
+  glGenBuffers(1, &buffer);
+  glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+
+  int data_size;
+  void * data = read_file(path, &data_size);
+  assert(data != NULL);
+
+  glBufferData(GL_UNIFORM_BUFFER, data_size, data, GL_STATIC_DRAW);
+  free(data);
+
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+  return buffer;
+}

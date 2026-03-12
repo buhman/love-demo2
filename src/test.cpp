@@ -13,31 +13,7 @@
 #include "world.h"
 #include "view.h"
 #include "non_block.h"
-
-#include "data.inc"
-
-struct test_location {
-  struct {
-    unsigned int position;
-    unsigned int normal;
-    unsigned int texture;
-    unsigned int block_position;
-    unsigned int block_id;
-    unsigned int data;
-  } attrib;
-  struct {
-    unsigned int transform;
-    unsigned int terrain_sampler;
-    unsigned int mouse_position;
-
-    unsigned int texture_id;
-  } uniform;
-  struct {
-    unsigned int texture_id;
-  } binding;
-};
-static unsigned int test_program;
-static test_location test_location;
+#include "minecraft.h"
 
 struct line_location {
   struct {
@@ -83,40 +59,6 @@ struct lighting_location {
 static unsigned int lighting_program;
 static lighting_location lighting_location;
 
-struct char_tpl {
-  const char * vtx;
-  const char * cfg;
-};
-
-static const int region_count = 4;
-static const char_tpl vertex_paths[] = {
-  { "minecraft/region.0.0.instance.vtx", "minecraft/region.0.0.instance.cfg" },
-  { "minecraft/region.-1.0.instance.vtx", "minecraft/region.-1.0.instance.cfg" },
-  { "minecraft/region.0.-1.instance.vtx", "minecraft/region.0.-1.instance.cfg" },
-  { "minecraft/region.-1.-1.instance.vtx", "minecraft/region.-1.-1.instance.cfg" },
-};
-
-static unsigned int vertex_array_object;
-static unsigned int per_instance_vertex_buffers[region_count];
-static unsigned int index_buffer;
-static unsigned int per_vertex_buffer;
-
-static const int vertex_size = 8;
-static const int per_vertex_size = (3 + 3 + 2) * 2;
-
-// also update index_buffer_custom_offsets in data.inc
-static const int custom_block_types = 4;
-static const int instance_cfg_length = 64 + custom_block_types;
-
-struct instance_cfg {
-  struct region_instance {
-    int instance_count;
-    int offset;
-  } cfg[instance_cfg_length];
-};
-
-static instance_cfg instance_cfg[region_count];
-
 static unsigned int empty_vertex_array_object = -1;
 static unsigned int quad_index_buffer = -1;
 
@@ -126,6 +68,8 @@ static XMVECTOR mouse_ray_position;
 
 static float current_time;
 static float last_frame_time;
+
+static unsigned int light_uniform_buffer;
 
 void load_quad_index_buffer()
 {
@@ -141,44 +85,6 @@ void load_quad_index_buffer()
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   glGenVertexArrays(1, &empty_vertex_array_object);
-}
-
-void load_test_program()
-{
-  unsigned int program = compile_from_files("shader/test.vert",
-                                            NULL,
-                                            "shader/test.frag");
-
-  test_location.attrib.position = glGetAttribLocation(program, "Position");
-  test_location.attrib.normal = glGetAttribLocation(program, "Normal");
-  test_location.attrib.texture = glGetAttribLocation(program, "Texture");
-
-  test_location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
-  test_location.attrib.block_id = glGetAttribLocation(program, "BlockID");
-  test_location.attrib.data = glGetAttribLocation(program, "Data");
-  printf("test program:\n");
-  printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  block_id %u\n",
-         test_location.attrib.position,
-         test_location.attrib.normal,
-         test_location.attrib.texture,
-         test_location.attrib.block_position,
-         test_location.attrib.block_id,
-         test_location.attrib.data);
-
-  test_location.uniform.transform = glGetUniformLocation(program, "Transform");
-  test_location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
-  test_location.uniform.texture_id = glGetUniformBlockIndex(program, "TextureID");
-  test_location.uniform.mouse_position = glGetUniformLocation(program, "MousePosition");
-  printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n  texture_id %u\n  mouse_position %u\n",
-         test_location.uniform.transform,
-         test_location.uniform.terrain_sampler,
-         test_location.uniform.texture_id,
-         test_location.uniform.mouse_position);
-
-  test_location.binding.texture_id = 0;
-  glUniformBlockBinding(program, test_location.uniform.texture_id, test_location.binding.texture_id);
-
-  test_program = program;
 }
 
 void load_quad_program()
@@ -224,91 +130,9 @@ void load_lighting_program()
   lighting_program = program;
 }
 
-void load_per_instance_vertex_buffer(int i)
+void load_light_uniform_buffer()
 {
-  int vertex_buffer_data_size;
-  void * vertex_buffer_data = read_file(vertex_paths[i].vtx, &vertex_buffer_data_size);
-
-  glBindBuffer(GL_ARRAY_BUFFER, per_instance_vertex_buffers[i]);
-  glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
-
-  free(vertex_buffer_data);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void load_per_vertex_buffer()
-{
-  glGenBuffers(1, &per_vertex_buffer);
-
-  int vertex_buffer_data_size;
-  void * vertex_buffer_data = read_file("minecraft/per_vertex.vtx", &vertex_buffer_data_size);
-
-  glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
-  glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
-
-  free(vertex_buffer_data);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void load_index_buffer()
-{
-  glGenBuffers(1, &index_buffer);
-
-  int index_buffer_data_size;
-  void * index_buffer_data = read_file("minecraft/configuration.idx", &index_buffer_data_size);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_data_size, index_buffer_data, GL_STATIC_DRAW);
-
-  free(index_buffer_data);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
-void load_test_vertex_attributes()
-{
-  glGenVertexArrays(1, &vertex_array_object);
-  glBindVertexArray(vertex_array_object);
-
-  glVertexBindingDivisor(0, 0);
-  glVertexBindingDivisor(1, 1);
-
-  glEnableVertexAttribArray(test_location.attrib.position);
-  glVertexAttribFormat(test_location.attrib.position, 3, GL_HALF_FLOAT, GL_FALSE, 0);
-  glVertexAttribBinding(test_location.attrib.position, 0);
-
-  glEnableVertexAttribArray(test_location.attrib.normal);
-  glVertexAttribFormat(test_location.attrib.normal, 3, GL_HALF_FLOAT, GL_FALSE, 6);
-  glVertexAttribBinding(test_location.attrib.normal, 0);
-
-  glEnableVertexAttribArray(test_location.attrib.texture);
-  glVertexAttribFormat(test_location.attrib.texture, 2, GL_HALF_FLOAT, GL_FALSE, 12);
-  glVertexAttribBinding(test_location.attrib.texture, 0);
-
-  glEnableVertexAttribArray(test_location.attrib.block_position);
-  glVertexAttribFormat(test_location.attrib.block_position, 3, GL_SHORT, GL_FALSE, 0);
-  glVertexAttribBinding(test_location.attrib.block_position, 1);
-
-  glEnableVertexAttribArray(test_location.attrib.block_id);
-  glVertexAttribFormat(test_location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
-  glVertexAttribBinding(test_location.attrib.block_id, 1);
-
-  glEnableVertexAttribArray(test_location.attrib.data);
-  glVertexAttribFormat(test_location.attrib.data, 1, GL_UNSIGNED_BYTE, GL_FALSE, 7);
-  glVertexAttribBinding(test_location.attrib.data, 1);
-
-  glBindVertexArray(0);
-}
-
-void load_instance_cfg(int i)
-{
-  int data_size;
-  void * data = read_file(vertex_paths[i].cfg, &data_size);
-  assert(data_size == (sizeof (struct instance_cfg)));
-
-  memcpy(&instance_cfg[i], data, data_size);
+  light_uniform_buffer = load_uniform_buffer("minecraft/global.lights.vtx");
 }
 
 struct target_name {
@@ -385,80 +209,6 @@ void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer,
   geometry_buffer.initialized = 1;
   geometry_buffer.width = width;
   geometry_buffer.height = height;
-}
-
-void load_buffers()
-{
-  load_test_vertex_attributes();
-
-  // per-vertex buffer
-  load_per_vertex_buffer();
-
-  // per-instance buffer
-  glGenBuffers(region_count, per_instance_vertex_buffers);
-  for (int i = 0; i < region_count; i++) {
-    load_per_instance_vertex_buffer(i);
-    load_instance_cfg(i);
-  }
-
-  // index buffer
-  load_index_buffer();
-}
-
-static unsigned int texture;
-
-void load_textures()
-{
-  glGenTextures(1, &texture);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  int texture_data_size;
-  void * texture_data = read_file("minecraft/terrain.data", &texture_data_size);
-  assert(texture_data != NULL);
-
-  int width = 256;
-  int height = 256;
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
-
-  free(texture_data);
-
-  glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-static unsigned int light_uniform_buffer;
-static unsigned int texture_id_uniform_buffer;
-
-unsigned int load_uniform_buffer(char const * const path)
-{
-  unsigned int buffer;
-  glGenBuffers(1, &buffer);
-  glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-
-  int data_size;
-  void * data = read_file(path, &data_size);
-  assert(data != NULL);
-
-  glBufferData(GL_UNIFORM_BUFFER, data_size, data, GL_STATIC_DRAW);
-  free(data);
-
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-  return buffer;
-}
-
-void load_light_uniform_buffer()
-{
-  light_uniform_buffer = load_uniform_buffer("minecraft/global.lights.vtx");
-}
-
-void load_texture_id_uniform_buffer()
-{
-  texture_id_uniform_buffer = load_uniform_buffer("minecraft/block_id_to_texture_id.data");
 }
 
 extern "C" {
@@ -593,10 +343,17 @@ void load(const char * source_path)
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
   gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
-  load_test_program();
-  load_buffers();
-  load_textures();
-  load_texture_id_uniform_buffer();
+  //////////////////////////////////////////////////////////////////////
+  // minecraft (drawing data)
+  //////////////////////////////////////////////////////////////////////
+
+  minecraft::load();
+
+  //////////////////////////////////////////////////////////////////////
+  // world (collision data)
+  //////////////////////////////////////////////////////////////////////
+
+  load_world();
 
   //////////////////////////////////////////////////////////////////////
   // view
@@ -635,12 +392,6 @@ void load(const char * source_path)
   load_line_vertex_attributes();
 
   glGenBuffers(1, &line_instance_buffer);
-
-  //////////////////////////////////////////////////////////////////////
-  // world
-  //////////////////////////////////////////////////////////////////////
-
-  load_world();
 
   //////////////////////////////////////////////////////////////////////
   // non_block
@@ -714,11 +465,6 @@ void update(float time)
   current_time = time;
 
   view::update_transforms();
-}
-
-static inline int popcount(int x)
-{
-  return __builtin_popcount(x);
 }
 
 template <typename T>
@@ -819,67 +565,6 @@ void draw_hud()
   y += ter_best.desc->glyph_height;
 }
 
-void draw_minecraft()
-{
-  glUseProgram(test_program);
-
-  glBlendFunc(GL_ONE, GL_ZERO);
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_GREATER);
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  glUniformMatrix4fv(test_location.uniform.transform, 1, false, (float *)&view::state.float_transform);
-  glUniform1i(test_location.uniform.terrain_sampler, 0);
-
-  glBindBufferBase(GL_UNIFORM_BUFFER, test_location.binding.texture_id, texture_id_uniform_buffer);
-
-  //glEnable(GL_CULL_FACE);
-  //glCullFace(GL_FRONT);
-  //glFrontFace(GL_CCW);
-
-  XMFLOAT3 position2 = {(float)line_points[0].x, (float)line_points[0].z, (float)line_points[0].y};
-  glUniform3fv(test_location.uniform.mouse_position, 1, (float*)&position2);
-
-  glBindVertexArray(vertex_array_object);
-  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-
-  for (int region_index = 0; region_index < region_count; region_index++) {
-    glBindVertexBuffer(1, per_instance_vertex_buffers[region_index], 0, vertex_size);
-
-    //////////////////////////////////////////////////////////////////////
-    // cube blocks
-    //////////////////////////////////////////////////////////////////////
-    for (int configuration = 1; configuration < 64; configuration++) {
-      int element_count = 6 * popcount(configuration);
-      const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
-
-      int instance_count = instance_cfg[region_index].cfg[configuration].instance_count;
-      int base_instance = instance_cfg[region_index].cfg[configuration].offset / vertex_size; // index into region.0.0.instance.vtx
-
-      if (instance_count == 0)
-        continue;
-
-      glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
-    }
-
-    //////////////////////////////////////////////////////////////////////
-    // custom blocks
-    //////////////////////////////////////////////////////////////////////
-    for (int i = 0; i < custom_block_types; i++) {
-      int element_count = index_buffer_custom_offsets[i].count;
-      const void * indices = (void *)((ptrdiff_t)index_buffer_custom_offsets[i].offset);
-      int instance_count = instance_cfg[region_index].cfg[64 + i].instance_count;
-      int base_instance = instance_cfg[region_index].cfg[64 + i].offset / vertex_size; // index into region.0.0.instance.vtx
-      if (instance_count == 0)
-        continue;
-      glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
-    }
-  }
-}
-
 void draw_quad()
 {
   glUseProgram(quad_program);
@@ -941,6 +626,12 @@ void draw_lighting()
   glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, (void *)0);
 }
 
+static inline int popcount(int x)
+{
+  return __builtin_popcount(x);
+}
+
+/*
 void draw_line()
 {
   if (line_point_ix == 0)
@@ -973,6 +664,7 @@ void draw_line()
     return;
   glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count - base_instance, base_instance);
 }
+*/
 
 int clamp(int n, int high)
 {
@@ -1051,7 +743,7 @@ void draw()
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  draw_minecraft();
+  minecraft::draw();
   //draw_line();
   non_block::draw();
 

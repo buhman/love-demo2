@@ -6,8 +6,8 @@
 
 #include "opengl.h"
 #include "file.h"
-#include "non_block.h"
 #include "view.h"
+#include "non_block.h"
 
 namespace non_block {
   unsigned int vertex_array_object;

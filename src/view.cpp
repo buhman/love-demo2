@@ -8,6 +8,8 @@ constexpr bool third_person = false;
 namespace view {
   view_state state = {};
 
+  const float at_distance = 10;
+
   static inline XMMATRIX current_projection()
   {
     float fov_angle_y = XMConvertToRadians(45 * state.fov);
@@ -54,7 +56,7 @@ namespace view {
       state.direction = get_direction(); // on forward/normal/pitch change
 
       state.eye += state.forward * forward + state.normal * strafe + state.up * elevation;
-      state.at = state.eye + state.direction * 4;
+      state.at = state.eye + state.direction * at_distance;
     }
   }
 
@@ -69,7 +71,7 @@ namespace view {
       state.direction = get_direction(); // on forward/normal/pitch change
 
       state.at += state.forward * forward + state.normal * strafe + state.up * elevation;
-      state.eye = state.at - state.direction * 4;
+      state.eye = state.at - state.direction * at_distance;
     }
   }
 
@@ -102,6 +104,6 @@ namespace view {
 
     // position
     state.eye = XMVectorSet(-55.5f, 48.25f, 50.0f, 1);
-    state.at = state.eye + state.direction * 4;
+    state.at = state.eye + state.direction * at_distance;
   }
 }
