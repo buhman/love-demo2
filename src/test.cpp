@@ -17,6 +17,7 @@
 #include "minecraft.h"
 #include "hud.h"
 #include "lighting.h"
+#include "collision_scene.h"
 
 struct line_location {
   struct {
@@ -278,6 +279,12 @@ void load(const char * source_path)
   non_block::load_index_buffer();
   non_block::load_per_vertex_buffer();
   non_block::load_vertex_attributes();
+
+  //////////////////////////////////////////////////////////////////////
+  // collision_scene
+  //////////////////////////////////////////////////////////////////////
+
+  collision_scene::load();
 }
 
 void update_keyboard(int up, int down, int left, int right)
@@ -285,6 +292,7 @@ void update_keyboard(int up, int down, int left, int right)
   //float forward = (0.1f * up + -0.1f * down);
   //float strafe = (-0.1f * left + 0.1f * right);
   //view::third_person::apply_translation(forward, strafe, 0);
+  collision_scene::update(up, down, left, right);
 }
 
 const int max_joysticks = 8;
@@ -452,6 +460,7 @@ void draw()
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glClearDepth(-1.0f);
 
+  /*
   // possibly re-initialize geometry buffer if window width/height changes
   init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
 
@@ -468,6 +477,11 @@ void draw()
   lighting::draw();
   //draw_quad();
   hud::draw();
+  */
+
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  collision_scene::draw();
 
   last_frame_time = current_time;
 }
