@@ -174,7 +174,7 @@ namespace collision {
     return true;
   }
 
-  static const float interval_epsilon = 0.02f;
+  static const float interval_epsilon = 0.01f;
 
   static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction,
                                                   float t0, float t1, AABB const & aabb,
@@ -196,5 +196,15 @@ namespace collision {
       return true;
 
     return intersect_moving_sphere_aabb(sphere, direction, mid, t1, aabb, t, point);
+  }
+
+  static inline AABB moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction)
+  {
+    XMVECTOR min = sphere.center + XMVectorReplicate(-sphere.radius);
+    XMVECTOR max = sphere.center + XMVectorReplicate( sphere.radius);
+
+    min = XMVectorMin(min, min + direction);
+    max = XMVectorMax(max, max + direction);
+    return AABB(min, max);
   }
 }

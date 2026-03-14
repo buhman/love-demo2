@@ -265,6 +265,38 @@ namespace collision_scene {
     glDrawElementsBaseVertex(GL_LINE_STRIP, 5, GL_UNSIGNED_SHORT, (void*)(cube_base_index), cube_base_vertex);
   }
 
+  static const XMVECTOR cubes[] = {
+    XMVectorSet(1, 1, 0, 1),
+    XMVectorSet(-1, 1, 0, 1),
+    XMVectorSet(-2, 1, 0, 1),
+    XMVectorSet(-2, -2, 0, 1),
+    XMVectorSet(-2, -3, 0, 1),
+  };
+  static const int cubes_length = (sizeof (cubes)) / (sizeof (cubes[0]));
+
+  static XMVECTOR min_intersection_point;
+  static XMVECTOR min_intersection_position;
+  static float min_t;
+  static bool min_intersected;
+
+  void check_collision(collision::Sphere const & sphere, XMVECTOR const & direction,
+                       XMVECTOR const & cube_center)
+  {
+    collision::AABB aabb = collision::cube_aabb(cube_center, 0.5);
+    float t;
+    XMVECTOR intersection_point;
+    bool intersected = collision::intersect_moving_sphere_aabb(sphere, direction,
+                                                               0, 1, aabb,
+                                                               t, intersection_point);
+    XMVECTOR intersection_position = sphere.center + direction * t;
+    if (intersected && t < min_t) {
+      min_t = t;
+      min_intersected = true;
+      min_intersection_point = intersection_point;
+      min_intersection_position = intersection_position;
+    }
+  }
+
   void draw()
   {
     glUseProgram(program);
@@ -288,11 +320,32 @@ namespace collision_scene {
 
     glUniform1i(location.uniform.use_grid_transform, 0);
 
+    collision::Sphere sphere(point_position[0], 0.5);
+    XMVECTOR direction = point_position[1] - point_position[0];
+    collision::AABB sphere_aabb = collision::moving_sphere_aabb(sphere, direction);
+    XMVECTOR min_floor = XMVectorFloor(sphere_aabb.min);
+    XMVECTOR max_ceiling = XMVectorCeiling(sphere_aabb.max);
+
+    //////////////////////////////////////////////////////////////////////
+    // reset intersections
+    //////////////////////////////////////////////////////////////////////
+    min_t = FLT_MAX;
+    min_intersected = false;
 
     glLineWidth(3.0f);
-    glUniform3f(location.uniform.base_color, 0.5, 1.0, 0.0);
-    XMVECTOR cube_center = XMVectorSet(1, 1, 0, 1);
-    draw_cube(transform, cube_center);
+    for (int i = 0; i < cubes_length; i++) {
+      XMVECTOR center = cubes[i];
+      XMVECTOR le = XMVectorLessOrEqual(min_floor, center);
+      XMVECTOR ge = XMVectorGreaterOrEqual(max_ceiling, center);
+      if (XMVectorGetX(le) == 0 || XMVectorGetY(le) == 0 || XMVectorGetZ(le) == 0 ||
+          XMVectorGetX(ge) == 0 || XMVectorGetY(ge) == 0 || XMVectorGetZ(ge) == 0) {
+        glUniform3f(location.uniform.base_color, 0.5, 1.0, 0.0);
+      } else {
+        check_collision(sphere, direction, center);
+        glUniform3f(location.uniform.base_color, 0.5, 0.5, 0.5);
+      }
+      draw_cube(transform, center);
+    }
 
     glUniform3f(location.uniform.base_color, 0, 0.0, 1.0);
     draw_sphere(transform, point_position[0], 0.5);
@@ -300,22 +353,20 @@ namespace collision_scene {
     draw_sphere(transform, point_position[1], point_radius);
     draw_line(transform, point_position[0], point_position[1]);
 
-    collision::Sphere sphere(point_position[0], 0.5);
-    XMVECTOR direction = point_position[1] - point_position[0];
-    collision::AABB aabb = collision::cube_aabb(cube_center, 0.5);
-    float t;
-    XMVECTOR intersection_point;
-    bool intersected = collision::intersect_moving_sphere_aabb(sphere, direction,
-                                                               0, 1, aabb,
-                                                               t, intersection_point);
-
-    if (intersected){
+    if (min_intersected){
       glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
-      XMVECTOR intersection_position = point_position[0] + direction * t;
-      draw_sphere(transform, intersection_position, 0.5);
+      draw_sphere(transform, min_intersection_position, 0.5);
       glUniform3f(location.uniform.base_color, 1.0, 0.0, 0.0);
-      draw_sphere(transform, intersection_point, point_radius);
+      draw_sphere(transform, min_intersection_point, point_radius);
     }
+
+    XMVECTOR pa = XMVectorSelect(sphere_aabb.min, sphere_aabb.max, g_XMSelect1000);
+    XMVECTOR pb = XMVectorSelect(sphere_aabb.min, sphere_aabb.max, g_XMSelect0101);
+    draw_line(transform, sphere_aabb.min, pa);
+    draw_line(transform, pa, sphere_aabb.max);
+    draw_line(transform, sphere_aabb.max, pb);
+    draw_line(transform, pb, sphere_aabb.min);
+    //sphere_aabb.max,
 
     /*
     // segments
