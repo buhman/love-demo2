@@ -7,7 +7,9 @@ extern "C" {
   void load(const char * source_path);
   void draw();
   void update_keyboard(int up, int down, int left, int right,
-                       int w, int s, int a, int d);
+                       int w, int s, int a, int d,
+                       int t, int g, int f, int h,
+                       int i, int k, int j, int l);
   void update_mouse(int x, int y);
   void update_joystick(int joystick_index,
                        float lx, float ly, float rx, float ry, float tl, float tr,

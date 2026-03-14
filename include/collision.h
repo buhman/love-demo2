@@ -79,4 +79,92 @@ namespace collision {
 
     return true;
   }
+
+  static inline float clamp(float f, float min, float max)
+  {
+    if (f < min) return min;
+    if (f > max) return max;
+    return f;
+  }
+
+  static inline void closest_point_segment_segment(XMVECTOR const & a1, XMVECTOR const & b1, // segment 1
+                                                   XMVECTOR const & a2, XMVECTOR const & b2, // segment 2
+                                                   float & t1, // (s)
+                                                   float & t2, // (t)
+                                                   XMVECTOR & c1, // closest point to segment 1
+                                                   XMVECTOR & c2) // closest point to segment 2
+  {
+    const float epsilon = 1.192092896e-7f;
+
+    XMVECTOR d1 = b1 - a1;
+    XMVECTOR d2 = b2 - a2;
+    XMVECTOR r = a1 - a2;
+    float l1 = XMVectorGetX(XMVector3Dot(d1, d1)); // squared length of segment 1 (a)
+    float l2 = XMVectorGetX(XMVector3Dot(d2, d2)); // squared length of segment 2 (e)
+    float d1r = XMVectorGetX(XMVector3Dot(d1, r)); // (c)
+    float d2r = XMVectorGetX(XMVector3Dot(d2, r)); // (f)
+
+    if (l1 <= epsilon && l2 <= epsilon) {
+      // both segments are points
+      t1 = 0.0f;
+      t2 = 0.0f;
+      c1 = a1;
+      c2 = a2;
+      return;
+    }
+    if (l1 <= epsilon) {
+      // segment 1 is a point
+      t1 = 0.0f;
+      t2 = clamp(d2r / l2, 0.0f, 1.0f);
+    } else if (l2 <= epsilon) {
+      // segment 2 is a point
+      t1 = clamp(-d1r / l1, 0.0, 1.0f);
+      t2 = 0.0f;
+    } else {
+      float b = XMVectorGetX(XMVector3Dot(d1, d2));
+      float denom = l1 * l2 - b * b;
+      if (denom != 0.0f) {
+        // segments are not parallel
+        t1 = clamp((b * d2r - d1r * l2) / denom, 0.0f, 1.0f);
+      } else {
+        t1 = 0.0f;
+      }
+      t2 = (b * t1 + d2r) / l2;
+      if (t2 < 0.0f) {
+        t2 = 0.0f;
+        t1 = clamp(-d1r / l1, 0.0f, 1.0f);
+      } else if (t2 > 1.0f) {
+        t2 = 1.0f;
+        t1 = clamp((b - d1r) / l1, 0.0f, 1.0f);
+      }
+    }
+
+    c1 = a1 + d1 * t1;
+    c2 = a2 + d2 * t2;
+  }
+
+  static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction, AABB const & aabb, float & t)
+  {
+    AABB expand(expand.min - XMVectorReplicate(sphere.radius),
+                expand.max + XMVectorReplicate(sphere.radius));
+
+    // intersect ray against expand
+    XMVECTOR point;
+    bool intersection = intersect_ray_aabb(sphere.center, direction, expand, t, point);
+    if (!intersection || t > 1.0f)
+      return false;
+
+    XMVECTOR lt = XMVectorLess(point, aabb.min);
+    int u = 0;
+    if (XMVectorGetX(lt) != 0) u |= 1;
+    if (XMVectorGetY(lt) != 0) u |= 2;
+    if (XMVectorGetZ(lt) != 0) u |= 4;
+    XMVECTOR gt = XMVectorGreater(point, aabb.max);
+    int v = 0;
+    if (XMVectorGetX(gt) != 0) v |= 1;
+    if (XMVectorGetY(gt) != 0) v |= 2;
+    if (XMVectorGetZ(gt) != 0) v |= 4;
+
+    int mask = u + v;
+  }
 }

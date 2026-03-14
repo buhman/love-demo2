@@ -12,7 +12,9 @@ void load(const char * source_path);
 void update_window(int width, int height);
 void draw();
 void update_keyboard(int up, int down, int left, int right,
-                     int w, int s, int a, int d);
+                     int w, int s, int a, int d,
+                     int t, int g, int f, int h,
+                     int i, int k, int j, int l);
 void update_mouse(int x, int y);
 void update_joystick(int joystick_index,
                      float lx, float ly, float rx, float ry, float tl, float tr,
@@ -66,7 +68,18 @@ local update = function(time)
    local s = love.keyboard.isDown("s")
    local a = love.keyboard.isDown("a")
    local d = love.keyboard.isDown("d")
-   test.update_keyboard(up, down, left, right, w, s, a, d);
+   local t = love.keyboard.isDown("t")
+   local g = love.keyboard.isDown("g")
+   local f = love.keyboard.isDown("f")
+   local h = love.keyboard.isDown("h")
+   local i = love.keyboard.isDown("i")
+   local k = love.keyboard.isDown("k")
+   local j = love.keyboard.isDown("j")
+   local l = love.keyboard.isDown("l")
+   test.update_keyboard(up, down, left, right,
+                        w, s, a, d,
+                        t, g, f, h,
+                        i, k, j, l);
 
    test.update(time)
 end

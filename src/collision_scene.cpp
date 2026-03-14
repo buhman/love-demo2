@@ -26,8 +26,7 @@ namespace collision_scene {
 
   static unsigned int index_buffer;
 
-  static XMVECTOR point_position;
-  static XMVECTOR point_1_position;
+  static XMVECTOR point_position[4];
 
   static unsigned int ray_vertex_buffer;
 
@@ -150,8 +149,8 @@ namespace collision_scene {
 
     load_index_buffer();
 
-    point_position = XMVectorSet(0, 0, 0, 1);
-    point_1_position = XMVectorSet(0, 0, 0, 1);
+    for (int i = 0; i < 4; i++)
+      point_position[i] = XMVectorSet(0, 0, 0, 1);
 
     // ray buffer
     glGenBuffers(1, &ray_vertex_buffer);
@@ -183,19 +182,32 @@ namespace collision_scene {
     return XMMatrixOrthographicRH(10, 10, 0, 10);
   }
 
+  const float point_radius = 0.05f;
+
   void update(int up, int down, int left, int right,
-              int w, int s, int a, int d)
+              int w, int s, int a, int d,
+              int t, int g, int f, int h,
+              int i, int k, int j, int l)
   {
     float rate = 0.05f;
-    float forward = (rate * up + -rate * down);
-    float strafe = (-rate * left + rate * right);
 
-    float forward_1 = (rate * w + -rate * s);
-    float strafe_1 = (-rate * a + rate * d);
+    float forward[4];
+    float strafe[4];
 
-    point_position = XMVector3Transform(point_position, XMMatrixTranslation(strafe, forward, 0));
+    forward[0] = (rate * up + -rate * down);
+    strafe[0] = (-rate * left + rate * right);
 
-    point_1_position = XMVector3Transform(point_1_position, XMMatrixTranslation(strafe_1, forward_1, 0));
+    forward[1] = (rate * w + -rate * s);
+    strafe[1] = (-rate * a + rate * d);
+
+    forward[2] = (rate * t + -rate * g);
+    strafe[2] = (-rate * f + rate * h);
+
+    forward[3] = (rate * i + -rate * k);
+    strafe[3] = (-rate * j + rate * l);
+
+    for (int i = 0; i < 4; i++)
+      point_position[i] = XMVector3Transform(point_position[i], XMMatrixTranslation(strafe[i], forward[i], 0));
   }
 
   static inline void set_transform(XMMATRIX const & transform)
@@ -227,9 +239,17 @@ namespace collision_scene {
     glDrawElementsBaseVertex(GL_LINE_STRIP, 33, GL_UNSIGNED_SHORT, (void*)(circle_base_index), circle_base_vertex);
   }
 
-  void draw_capsule(XMVECTOR a, XMVECTOR b, float radius)
+  void draw_capsule(XMMATRIX const & transform, XMVECTOR a, XMVECTOR b, float radius)
   {
+    draw_sphere(transform, a, radius);
+    draw_sphere(transform, b, radius);
 
+    XMVECTOR abn = XMVector3Normalize(a - b);
+    XMVECTOR p = XMVectorSet(0, 0, 1, 0);
+    XMVECTOR pxabn = XMVector3Cross(abn, p);
+
+    draw_line(transform, a + pxabn * radius, b + pxabn * radius);
+    draw_line(transform, a - pxabn * radius, b - pxabn * radius);
   }
 
   void draw()
@@ -245,16 +265,42 @@ namespace collision_scene {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
     XMMATRIX transform = view() * projection();
-    XMFLOAT4X4 float_transform;
-    XMStoreFloat4x4(&float_transform, transform);
 
     // grid
-    glUniformMatrix4fv(location.uniform.transform, 1, false, (float *)&float_transform);
+    set_transform(transform);
     glUniform3f(location.uniform.base_color, 0, 1, 0);
     glUniform1i(location.uniform.use_grid_transform, 1);
     glDrawArraysInstanced(GL_LINES, 0, 4, 7);
 
+    glUniform1i(location.uniform.use_grid_transform, 0);
+
+    // segments
+    glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
+    draw_line(transform, point_position[0], point_position[1]);
+    glUniform3f(location.uniform.base_color, 0, 1.0, 0.5);
+    draw_line(transform, point_position[2], point_position[3]);
+
+    // points
+    glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
+    draw_sphere(transform, point_position[0], point_radius);
+    draw_sphere(transform, point_position[1], point_radius);
+
+    glUniform3f(location.uniform.base_color, 0, 1.0, 0.5);
+    draw_sphere(transform, point_position[2], point_radius);
+    draw_sphere(transform, point_position[3], point_radius);
+
+    float t1, t2;
+    XMVECTOR c1, c2;
+    collision::closest_point_segment_segment(point_position[0], point_position[1],
+                                             point_position[2], point_position[3],
+                                             t1, t2, c1, c2);
+    glUniform3f(location.uniform.base_color, 1.0, 0.0, 0.0);
+    draw_sphere(transform, c1, point_radius);
+    glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
+    draw_sphere(transform, c2, point_radius);
+
     // cube
+    /*
     float cube_half = 0.5;
     XMVECTOR cube_position = XMVectorSet(1, 0, 0, 0);
     XMMATRIX cube_transform
@@ -269,7 +315,6 @@ namespace collision_scene {
     glDrawElementsBaseVertex(GL_LINE_STRIP, 5, GL_UNSIGNED_SHORT, (void*)(cube_base_index), cube_base_vertex);
 
     // circle
-    const float point_radius = 0.05f;
 
     glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
     draw_sphere(transform, point_position, point_radius);
@@ -288,5 +333,11 @@ namespace collision_scene {
       glUniform3f(location.uniform.base_color, 0.5, 0.5, 0.5);
       draw_line(transform, point_position, point_position + direction * 20.0f);
     }
+
+    glUniform3f(location.uniform.base_color, 0.5, 0.0, 0.5);
+    XMVECTOR ca = XMVectorSet(1, 2.5, 0, 0);
+    XMVECTOR cb = XMVectorSet(-1, 2, 0, 0);
+    draw_capsule(transform, ca, cb, 0.5);
+    */
   }
 }
