@@ -207,4 +207,18 @@ namespace collision {
     max = XMVectorMax(max, max + direction);
     return AABB(min, max);
   }
+
+  static inline XMVECTOR sphere_collision_response(Sphere const & sphere, XMVECTOR const & direction,
+                                                   XMVECTOR const & intersection_point,
+                                                   XMVECTOR const & intersection_position)
+  {
+    XMVECTOR origin = intersection_point;
+    XMVECTOR normal = XMVector3Normalize(intersection_position - intersection_point);
+    XMVECTOR destination = sphere.center + direction;
+    XMVECTOR distance = XMVector3Dot(destination, normal) - XMVector3Dot(normal, origin);
+    XMVECTOR new_destination = (destination - normal * distance) + normal * sphere.radius;
+    XMVECTOR new_direction = new_destination - intersection_position;
+
+    return new_direction;
+  }
 }
