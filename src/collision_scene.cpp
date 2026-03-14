@@ -150,7 +150,7 @@ namespace collision_scene {
     load_index_buffer();
 
     for (int i = 0; i < 4; i++)
-      point_position[i] = XMVectorSet(0, 0, 0, 1);
+      point_position[i] = XMVectorSet(-1, -1, 0, 1);
 
     // ray buffer
     glGenBuffers(1, &ray_vertex_buffer);
@@ -252,6 +252,19 @@ namespace collision_scene {
     draw_line(transform, a - pxabn * radius, b - pxabn * radius);
   }
 
+  void draw_cube(XMMATRIX const & transform, XMVECTOR const & position)
+  {
+    float cube_half = 0.5;
+    XMMATRIX cube_transform
+      = XMMatrixScaling(cube_half, cube_half, cube_half)
+      * XMMatrixTranslationFromVector(position)
+      * transform;
+    set_transform(cube_transform);
+    const int cube_base_vertex = 4;
+    const int cube_base_index = 0;
+    glDrawElementsBaseVertex(GL_LINE_STRIP, 5, GL_UNSIGNED_SHORT, (void*)(cube_base_index), cube_base_vertex);
+  }
+
   void draw()
   {
     glUseProgram(program);
@@ -267,6 +280,7 @@ namespace collision_scene {
     XMMATRIX transform = view() * projection();
 
     // grid
+    glLineWidth(1.0f);
     set_transform(transform);
     glUniform3f(location.uniform.base_color, 0, 1, 0);
     glUniform1i(location.uniform.use_grid_transform, 1);
@@ -274,6 +288,36 @@ namespace collision_scene {
 
     glUniform1i(location.uniform.use_grid_transform, 0);
 
+
+    glLineWidth(3.0f);
+    glUniform3f(location.uniform.base_color, 0.5, 1.0, 0.0);
+    XMVECTOR cube_center = XMVectorSet(1, 1, 0, 1);
+    draw_cube(transform, cube_center);
+
+    glUniform3f(location.uniform.base_color, 0, 0.0, 1.0);
+    draw_sphere(transform, point_position[0], 0.5);
+    glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
+    draw_sphere(transform, point_position[1], point_radius);
+    draw_line(transform, point_position[0], point_position[1]);
+
+    collision::Sphere sphere(point_position[0], 0.5);
+    XMVECTOR direction = point_position[1] - point_position[0];
+    collision::AABB aabb = collision::cube_aabb(cube_center, 0.5);
+    float t;
+    XMVECTOR intersection_point;
+    bool intersected = collision::intersect_moving_sphere_aabb(sphere, direction,
+                                                               0, 1, aabb,
+                                                               t, intersection_point);
+
+    if (intersected){
+      glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
+      XMVECTOR intersection_position = point_position[0] + direction * t;
+      draw_sphere(transform, intersection_position, 0.5);
+      glUniform3f(location.uniform.base_color, 1.0, 0.0, 0.0);
+      draw_sphere(transform, intersection_point, point_radius);
+    }
+
+    /*
     // segments
     glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
     draw_line(transform, point_position[0], point_position[1]);
@@ -316,6 +360,7 @@ namespace collision_scene {
       glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
       draw_sphere(transform, c2_point, point_radius);
     }
+    */
 
     // cube
     /*

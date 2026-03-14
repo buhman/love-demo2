@@ -174,28 +174,27 @@ namespace collision {
     return true;
   }
 
-  static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction, AABB const & aabb, float & t)
-  {
-    AABB expand(expand.min - XMVectorReplicate(sphere.radius),
-                expand.max + XMVectorReplicate(sphere.radius));
+  static const float interval_epsilon = 0.02f;
 
-    // intersect ray against expand
-    XMVECTOR point;
-    bool intersection = intersect_ray_aabb(sphere.center, direction, expand, t, point);
-    if (!intersection || t > 1.0f)
+  static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction,
+                                                  float t0, float t1, AABB const & aabb,
+                                                  float & t, XMVECTOR & point)
+  {
+    float mid = (t0 + t1) * 0.5f;
+    XMVECTOR center = sphere.center + direction * mid;
+    float radius = (mid - t0) * XMVectorGetX(XMVector3Length(direction)) + sphere.radius;
+    Sphere bound(center, radius);
+    if (!test_sphere_aabb(bound, aabb, point))
       return false;
 
-    XMVECTOR lt = XMVectorLess(point, aabb.min);
-    int u = 0;
-    if (XMVectorGetX(lt) != 0) u |= 1;
-    if (XMVectorGetY(lt) != 0) u |= 2;
-    if (XMVectorGetZ(lt) != 0) u |= 4;
-    XMVECTOR gt = XMVectorGreater(point, aabb.max);
-    int v = 0;
-    if (XMVectorGetX(gt) != 0) v |= 1;
-    if (XMVectorGetY(gt) != 0) v |= 2;
-    if (XMVectorGetZ(gt) != 0) v |= 4;
+    if (t1 - t0 < interval_epsilon) {
+      t = t0;
+      return true;
+    }
 
-    int mask = u + v;
+    if (intersect_moving_sphere_aabb(sphere, direction, t0, mid, aabb, t, point))
+      return true;
+
+    return intersect_moving_sphere_aabb(sphere, direction, mid, t1, aabb, t, point);
   }
 }
