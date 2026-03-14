@@ -294,10 +294,28 @@ namespace collision_scene {
     collision::closest_point_segment_segment(point_position[0], point_position[1],
                                              point_position[2], point_position[3],
                                              t1, t2, c1, c2);
-    glUniform3f(location.uniform.base_color, 1.0, 0.0, 0.0);
+    glUniform3f(location.uniform.base_color, 0.0, 0.5, 1.0);
     draw_sphere(transform, c1, point_radius);
-    glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
+    glUniform3f(location.uniform.base_color, 0.0, 1.0, 0.5);
     draw_sphere(transform, c2, point_radius);
+
+    collision::Capsule capsule1(point_position[0], point_position[1], 0.5);
+    collision::Capsule capsule2(point_position[2], point_position[3], 0.0);
+    glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
+    draw_capsule(transform, capsule1.a, capsule1.b, capsule1.radius);
+    glUniform3f(location.uniform.base_color, 0, 1.0, 0.5);
+    //draw_capsule(transform, capsule2.a, capsule2.b, capsule2.radius);
+
+    XMVECTOR c1_point;
+    XMVECTOR c2_point;
+    bool collided = collision::intersect_capsule_capsule(capsule1, capsule2, c1_point, c2_point);
+    if (collided) {
+      glUniform3f(location.uniform.base_color, 1.0, 0.0, 0.0);
+      draw_sphere(transform, c1_point, point_radius);
+
+      glUniform3f(location.uniform.base_color, 1.0, 0.5, 0.0);
+      draw_sphere(transform, c2_point, point_radius);
+    }
 
     // cube
     /*

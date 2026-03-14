@@ -17,6 +17,12 @@ namespace collision {
     float radius;
   };
 
+  struct Capsule {
+    XMVECTOR a;
+    XMVECTOR b;
+    float radius;
+  };
+
   static inline AABB cube_aabb(XMVECTOR const & center, float half)
   {
     half = fabsf(half);
@@ -141,6 +147,31 @@ namespace collision {
 
     c1 = a1 + d1 * t1;
     c2 = a2 + d2 * t2;
+  }
+
+  static inline bool intersect_capsule_capsule(Capsule const & capsule1, Capsule const & capsule2,
+                                               XMVECTOR & p1, XMVECTOR & p2)
+  {
+    float t1;
+    float t2;
+    XMVECTOR c1; // closest point in capsule1
+    XMVECTOR c2; // closest point in capsule2
+    closest_point_segment_segment(capsule1.a, capsule1.b,
+                                  capsule2.a, capsule2.b,
+                                  t1, t2,
+                                  c1, c2);
+    float distance2 = XMVectorGetX(XMVector3Dot(c1 - c2, c1 - c2));
+    float radius = capsule1.radius + capsule2.radius;
+    if (distance2 >= radius * radius)
+      return false;
+
+    float length = XMVectorGetX(XMVector3Length(c1 - c2));
+    XMVECTOR normal = XMVector3NormalizeEst(c2 - c1);
+    printf("length2 %f\n", capsule1.radius - length);
+    p1 = c1 + normal * capsule1.radius;
+    p2 = c2 + normal;
+
+    return true;
   }
 
   static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction, AABB const & aabb, float & t)
