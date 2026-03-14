@@ -347,6 +347,27 @@ namespace collision_scene {
       draw_cube(transform, center);
     }
 
+    //////////////////////////////////////////////////////////////////////
+    // collision response
+    //////////////////////////////////////////////////////////////////////
+
+    if (min_intersected) {
+      XMVECTOR origin = min_intersection_point;
+      XMVECTOR normal = XMVector3Normalize(min_intersection_position - min_intersection_point);
+      glUniform3f(location.uniform.base_color, 0, 1.0, 1.0);
+      draw_line(transform, min_intersection_point, min_intersection_point + normal);
+      XMVECTOR destination = sphere.center + direction;
+      float eq3 = -XMVectorGetX(XMVector3Dot(normal, origin));
+      float distance = XMVectorGetX(XMVector3Dot(destination, normal)) + eq3;
+      XMVECTOR new_destination = destination - normal * distance;
+      new_destination += normal * sphere.radius;
+      XMVECTOR new_direction = new_destination - min_intersection_position;
+
+      glUniform3f(location.uniform.base_color, 1.0, 0.5, 1.0);
+      draw_line(transform, min_intersection_position, min_intersection_position + new_direction);
+
+    }
+
     glUniform3f(location.uniform.base_color, 0, 0.0, 1.0);
     draw_sphere(transform, point_position[0], 0.5);
     glUniform3f(location.uniform.base_color, 0, 0.5, 1.0);
