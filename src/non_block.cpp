@@ -127,7 +127,8 @@ namespace non_block {
     glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
 
     void const * indices = (void *)(0);
-    int element_count = 300;
+    // element_count from vertex_buffer_non_block.py stdout
+    int element_count = 240;
     glDrawElements(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices);
   }
 }

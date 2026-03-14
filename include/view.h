@@ -33,11 +33,13 @@ namespace view {
   }
 
   namespace third_person {
-    void apply_transform(float forward, float strafe, float elevation,
-                         float delta_yaw, float delta_pitch);
+    XMVECTOR apply_transform(float forward, float strafe, float elevation,
+                             float delta_yaw, float delta_pitch);
   }
 
   void apply_fov(float delta);
   void update_transforms();
   void load();
+
+  const float at_distance = 10;
 }

@@ -18,6 +18,7 @@
 #include "hud.h"
 #include "lighting.h"
 #include "collision_scene.h"
+#include "collision.h"
 
 struct line_location {
   struct {
@@ -301,6 +302,42 @@ void update_keyboard(int up, int down, int left, int right,
                           i, k, j, l);
 }
 
+void check_collisions(collision::Sphere const & sphere, XMVECTOR const & direction,
+                      collision::state & state)
+{
+  state.t = FLT_MAX;
+  state.intersected = false;
+
+  collision::AABB sphere_aabb = collision::moving_sphere_aabb(sphere, direction);
+  XMVECTOR min_floor = XMVectorFloor(sphere_aabb.min);
+  XMVECTOR max_ceiling = XMVectorCeiling(sphere_aabb.max);
+
+  int min_x = XMVectorGetX(min_floor);
+  int min_y = XMVectorGetZ(min_floor); // swizzle
+  int min_z = XMVectorGetY(min_floor); // swizzle
+
+  int max_x = XMVectorGetX(max_ceiling);
+  int max_y = XMVectorGetZ(max_ceiling); // swizzle
+  int max_z = XMVectorGetY(max_ceiling); // swizzle
+
+  for (int x = min_x; x <= max_x; x++) {
+    for (int y = min_y; y <= max_y; y++) {
+      for (int z = min_z; z <= max_z; z++) {
+        global_entry * const entry = world_lookup(x, y, z);
+        if (entry == NULL)
+          continue;
+
+        // there is a block at x, y, z
+        XMVECTOR cube_center = XMVectorSet(x, z, y, 1); // swizzle
+        float cube_half = 0.5f;
+        collision::check_collision(sphere, direction,
+                                   cube_center, cube_half,
+                                   state);
+      }
+    }
+  }
+}
+
 const int max_joysticks = 8;
 
 void update_joystick(int joystick_index,
@@ -315,9 +352,44 @@ void update_joystick(int joystick_index,
   float elevation = (tl - tr) * 0.5;
   float delta_yaw = rx * -0.035;
   float delta_pitch = ry * -0.035;
-  view::third_person::apply_transform(forward, strafe, elevation,
-                                      delta_yaw, delta_pitch);
+
+  XMVECTOR direction = view::third_person::apply_transform(forward, strafe, elevation,
+                                                           delta_yaw, delta_pitch);
   view::apply_fov(0.01 * up + -0.01 * down);
+
+  XMVECTOR sphere_position = view::state.at;
+
+  float sphere_radius = 0.48;
+  collision::Sphere sphere(sphere_position, sphere_radius);
+  int intersections = 0;
+  collision::state state;
+  while (intersections < 500) {
+    check_collisions(sphere, direction, state);
+    if (!state.intersected)
+      break;
+
+    XMVECTOR intersection_normal;
+    XMVECTOR new_direction = collision::sphere_collision_response(sphere, direction,
+                                                                  state.intersection_point,
+                                                                  state.intersection_position,
+                                                                  intersection_normal);
+    // collide again
+    sphere.center = state.intersection_position + intersection_normal * 0.01f;
+    direction = new_direction * 0.9f;
+    if (XMVectorGetX(XMVector3Length(direction)) < 0.001f) {
+      direction = XMVectorZero();
+      break;
+    }
+    intersections += 1;
+  }
+  if (intersections == 500) { // too many recursive collisions
+    printf("too many recursive collisions\n");
+  } else {
+    // apply the last direction impulse
+    view::state.at = sphere.center + direction;
+  }
+
+  view::state.eye = view::state.at - view::state.direction * view::at_distance;
 
   /*
   lighting.quadratic += 0.01 * a + -0.01 * b;
@@ -466,7 +538,6 @@ void draw()
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glClearDepth(-1.0f);
 
-  /*
   // possibly re-initialize geometry buffer if window width/height changes
   init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
 
@@ -483,11 +554,12 @@ void draw()
   lighting::draw();
   //draw_quad();
   hud::draw();
-  */
 
+  /*
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   collision_scene::draw();
+  */
 
   last_frame_time = current_time;
 }

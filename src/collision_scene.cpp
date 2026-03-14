@@ -274,34 +274,8 @@ namespace collision_scene {
   };
   static const int cubes_length = (sizeof (cubes)) / (sizeof (cubes[0]));
 
-  struct collision_state {
-    float t;
-    bool intersected;
-    XMVECTOR intersection_point;
-    XMVECTOR intersection_position;
-  };
-
-  void check_collision(collision::Sphere const & sphere, XMVECTOR const & direction,
-                       XMVECTOR const & cube_center,
-                       collision_state & state)
-  {
-    collision::AABB aabb = collision::cube_aabb(cube_center, 0.5);
-    float t;
-    XMVECTOR intersection_point;
-    bool intersected = collision::intersect_moving_sphere_aabb(sphere, direction,
-                                                               0, 1, aabb,
-                                                               t, intersection_point);
-    XMVECTOR intersection_position = sphere.center + direction * t;
-    if (intersected && t < state.t) {
-      state.t = t;
-      state.intersected = true;
-      state.intersection_point = intersection_point;
-      state.intersection_position = intersection_position;
-    }
-  }
-
   void check_collisions(collision::Sphere const & sphere, XMVECTOR const & direction,
-                        collision_state & state)
+                        collision::state & state)
   {
     state.t = FLT_MAX;
     state.intersected = false;
@@ -320,7 +294,8 @@ namespace collision_scene {
         continue;
       }
 
-      check_collision(sphere, direction, cube_center, state);
+      float cube_half = 0.5;
+      collision::check_collision(sphere, direction, cube_center, cube_half, state);
     }
   }
 
@@ -374,14 +349,16 @@ namespace collision_scene {
     int intersections = 0;
     while (intersections < 10) {
 
-      collision_state state;
+      collision::state state;
       check_collisions(sphere, direction, state);
       if (!state.intersected)
         break;
 
+      XMVECTOR intersection_normal;
       XMVECTOR new_direction = collision::sphere_collision_response(sphere, direction,
                                                                     state.intersection_point,
-                                                                    state.intersection_position);
+                                                                    state.intersection_position,
+                                                                    intersection_normal);
 
       glUniform3f(location.uniform.base_color, 1.0, 0.5, 1.0);
       draw_line(transform, state.intersection_position, state.intersection_position + new_direction);

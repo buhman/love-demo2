@@ -174,7 +174,7 @@ namespace collision {
     return true;
   }
 
-  static const float interval_epsilon = 0.01f;
+  static const float interval_epsilon = 0.001f;
 
   static inline bool intersect_moving_sphere_aabb(Sphere const & sphere, XMVECTOR const & direction,
                                                   float t0, float t1, AABB const & aabb,
@@ -208,9 +208,36 @@ namespace collision {
     return AABB(min, max);
   }
 
+  struct state {
+    float t;
+    bool intersected;
+    XMVECTOR intersection_point;
+    XMVECTOR intersection_position;
+  };
+
+  static inline void check_collision(collision::Sphere const & sphere, XMVECTOR const & direction,
+                                     XMVECTOR const & cube_center, float cube_half,
+                                     state & state)
+  {
+    collision::AABB aabb = collision::cube_aabb(cube_center, cube_half);
+    float t;
+    XMVECTOR intersection_point;
+    bool intersected = collision::intersect_moving_sphere_aabb(sphere, direction,
+                                                               0, 1, aabb,
+                                                               t, intersection_point);
+    XMVECTOR intersection_position = sphere.center + direction * t;
+    if (intersected && t < state.t) {
+      state.t = t;
+      state.intersected = true;
+      state.intersection_point = intersection_point;
+      state.intersection_position = intersection_position;
+    }
+  }
+
   static inline XMVECTOR sphere_collision_response(Sphere const & sphere, XMVECTOR const & direction,
                                                    XMVECTOR const & intersection_point,
-                                                   XMVECTOR const & intersection_position)
+                                                   XMVECTOR const & intersection_position,
+                                                   XMVECTOR & intersection_normal)
   {
     XMVECTOR origin = intersection_point;
     XMVECTOR normal = XMVector3Normalize(intersection_position - intersection_point);
@@ -218,6 +245,8 @@ namespace collision {
     XMVECTOR distance = XMVector3Dot(destination, normal) - XMVector3Dot(normal, origin);
     XMVECTOR new_destination = (destination - normal * distance) + normal * sphere.radius;
     XMVECTOR new_direction = new_destination - intersection_position;
+
+    intersection_normal = normal;
 
     return new_direction;
   }

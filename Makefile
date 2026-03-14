@@ -2,7 +2,7 @@
 CC=$(PREFIX)gcc
 CXX=$(PREFIX)g++
 
-OPT = -O0 -march=x86-64-v3
+OPT = -O2 -march=x86-64-v3
 
 CSTD = -std=gnu23
 CXXSTD = -std=gnu++23
@@ -12,6 +12,7 @@ CFLAGS += -I./include
 CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unused-but-set-variable
 CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
 CFLAGS += $(shell pkg-config --cflags glfw3)
+CFLAGS += -fno-strict-aliasing
 
 LDFLAGS += -lm
 LDFLAGS += $(shell pkg-config --libs glfw3)
