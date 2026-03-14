@@ -287,12 +287,14 @@ void load(const char * source_path)
   collision_scene::load();
 }
 
-void update_keyboard(int up, int down, int left, int right)
+void update_keyboard(int up, int down, int left, int right,
+                     int w, int s, int a, int d)
 {
   //float forward = (0.1f * up + -0.1f * down);
   //float strafe = (-0.1f * left + 0.1f * right);
   //view::third_person::apply_translation(forward, strafe, 0);
-  collision_scene::update(up, down, left, right);
+  collision_scene::update(up, down, left, right,
+                          w, s, a, d);
 }
 
 const int max_joysticks = 8;
