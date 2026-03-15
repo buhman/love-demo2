@@ -1,3 +1,4 @@
+/* BDZ */
 /* generated with rurban/nbperf v3.1-0-g4379d4d -I <stdin> */
 /* seed[0]: 1469348094, seed[1]: 1956297539 */
 #include <stdint.h>

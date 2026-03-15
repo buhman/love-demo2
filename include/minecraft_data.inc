@@ -16,4 +16,5 @@ struct {
   {1164, 36}, // fence.obj
   {1200, 36}, // torch.obj
   {1236, 24}, // wheat.obj
+  {1260, 1584}, // custom-mushroom.obj
 };

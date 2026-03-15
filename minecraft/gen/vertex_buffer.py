@@ -14,7 +14,7 @@ normals = [
     (1.0, 0.0, 0.0),
 ]
 
-def build_configuration_index_buffers(f, faces_by_normal, index_buffer):
+def build_configuration_index_buffers(faces_by_normal, index_buffer):
     assert(set(normals) == set(faces_by_normal.keys()))
 
     offset = 0
@@ -27,7 +27,7 @@ def build_configuration_index_buffers(f, faces_by_normal, index_buffer):
             normal = normals[i]
             indices = faces_by_normal[normal]
             for index in indices:
-                f.write(struct.pack("<B", index))
+                #f.write(struct.pack("<B", index))
                 index_buffer.append(index)
                 offset += 1
 
@@ -47,14 +47,16 @@ def main():
     obj_state.append_triangles(cube_state, vertex_buffer, tmp_index_buffer, index_lookup)
     cube_faces_by_normal = obj_state.build_faces_by_normal(vertex_buffer, tmp_index_buffer)
 
-    build_configuration_index_buffers(f, cube_faces_by_normal, index_buffer)
+    build_configuration_index_buffers(cube_faces_by_normal, index_buffer)
+    # check mc.py `custom_blocks` for model order
     obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "tallgrass.obj")
     obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "fence.obj")
     obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "torch.obj")
     obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "wheat.obj")
+    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "custom-mushroom.obj")
 
     with open("../configuration.idx", "wb") as f:
-        obj_write.write_indices(f, "<B", index_buffer)
+        obj_write.write_indices(f, "<H", index_buffer)
 
     with open("../per_vertex.vtx", "wb") as f:
         obj_write.write_vertex_buffer(f, vertex_buffer)

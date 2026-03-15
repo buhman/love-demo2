@@ -58,7 +58,7 @@ namespace minecraft {
   static unsigned int index_buffer;
 
   // also update index_buffer_custom_offsets in data.inc
-  static const int custom_block_types = 4;
+  static const int custom_block_types = 5;
   static const int instance_cfg_length = 64 + custom_block_types;
 
   struct instance_cfg {
@@ -299,7 +299,7 @@ namespace minecraft {
       //////////////////////////////////////////////////////////////////////
       for (int configuration = 1; configuration < 64; configuration++) {
         int element_count = 6 * popcount(configuration);
-        const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
+        const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
 
         int instance_count = instance_cfg[region_index].cfg[configuration].instance_count;
         int base_instance = instance_cfg[region_index].cfg[configuration].offset / per_instance_size; // index into region.0.0.instance.vtx
@@ -307,7 +307,7 @@ namespace minecraft {
         if (instance_count == 0)
           continue;
 
-        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices, instance_count, base_instance);
       }
 
       //////////////////////////////////////////////////////////////////////
@@ -315,12 +315,12 @@ namespace minecraft {
       //////////////////////////////////////////////////////////////////////
       for (int i = 0; i < custom_block_types; i++) {
         int element_count = index_buffer_custom_offsets[i].count;
-        const void * indices = (void *)((ptrdiff_t)index_buffer_custom_offsets[i].offset);
+        const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_custom_offsets[i].offset);
         int instance_count = instance_cfg[region_index].cfg[64 + i].instance_count;
         int base_instance = instance_cfg[region_index].cfg[64 + i].offset / per_instance_size; // index into region.0.0.instance.vtx
         if (instance_count == 0)
           continue;
-        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count, base_instance);
+        glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices, instance_count, base_instance);
       }
     }
   }

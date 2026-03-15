@@ -51,7 +51,7 @@ void main()
   int terrain_x = terrain_ix % 16;
   int terrain_y = terrain_ix / 16;
   ivec2 coord = ivec2(terrain_x, terrain_y) * 16;
-  coord += ivec2(fs_in.Texture.xy * 16.0);
+  coord += ivec2(vec2(fs_in.Texture.x, 1.0 - fs_in.Texture.y) * 16.0);
 
   vec4 texture_color = texelFetch(TerrainSampler, coord, 0);
   if (texture_color.w != 1.0) {

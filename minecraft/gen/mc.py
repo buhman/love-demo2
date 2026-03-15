@@ -22,11 +22,11 @@ def wrap_n(nc, chunk_c):
         chunk_c = chunk_c + 1
     return nc, chunk_c
 
+# check vertex_buffer.py for model order
 custom_blocks = [
     { # "tallgrass" model
         data.BlockID.TALL_GRASS,
         data.BlockID.MUSHROOM_1,
-        data.BlockID.MUSHROOM_2,
         data.BlockID.FLOWER,
         data.BlockID.ROSE,
         data.BlockID.SAPLING,
@@ -39,6 +39,9 @@ custom_blocks = [
     },
     { # "wheat" model
         data.BlockID.WHEAT,
+    },
+    { # "custom-mushroom" model
+        data.BlockID.MUSHROOM_2,
     },
 ]
 
