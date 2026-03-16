@@ -20,6 +20,7 @@
 #include "line_art.h"
 #include "collision_scene.h"
 #include "collision.h"
+#include "boids_scene.h"
 
 struct line_location {
   struct {
@@ -288,6 +289,7 @@ void load(const char * source_path)
 
   line_art::load();
   collision_scene::load();
+  boids_scene::load();
 }
 
 void update_keyboard(int up, int down, int left, int right,
@@ -298,10 +300,16 @@ void update_keyboard(int up, int down, int left, int right,
   //float forward = (0.1f * up + -0.1f * down);
   //float strafe = (-0.1f * left + 0.1f * right);
   //view::third_person::apply_translation(forward, strafe, 0);
+  /*
   collision_scene::update(up, down, left, right,
                           w, s, a, d,
                           t, g, f, h,
                           i, k, j, l);
+  */
+  boids_scene::update(up, down, left, right,
+                      w, s, a, d,
+                      t, g, f, h,
+                      i, k, j, l);
 }
 
 void check_collisions(collision::Sphere const & sphere, XMVECTOR const & direction,
@@ -560,7 +568,8 @@ void draw()
   } else {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    collision_scene::draw();
+    //collision_scene::draw();
+    boids_scene::draw();
   }
 
   last_frame_time = current_time;

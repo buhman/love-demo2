@@ -169,7 +169,7 @@ namespace line_art {
 
   XMMATRIX projection()
   {
-    return XMMatrixOrthographicRH(10, 10, 0, 10);
+    return XMMatrixOrthographicRH(20, 20, 0, 10);
   }
 
   void set_transform(XMMATRIX const & transform)
@@ -227,6 +227,18 @@ namespace line_art {
     glDrawElementsBaseVertex(GL_LINE_STRIP, 5, GL_UNSIGNED_SHORT, (void*)(cube_base_index), cube_base_vertex);
   }
 
+  void draw_grid(XMMATRIX const & transform)
+  {
+    // grid
+    glLineWidth(1.0f);
+    set_transform(transform);
+    glUniform3f(location.uniform.base_color, 0, 1, 0);
+    glUniform1i(location.uniform.use_grid_transform, 1);
+    glDrawArraysInstanced(GL_LINES, 0, 4, 7);
+
+    glUniform1i(location.uniform.use_grid_transform, 0);
+  }
+
   void scene_start(XMMATRIX const & transform)
   {
     glUseProgram(program);
@@ -238,19 +250,15 @@ namespace line_art {
     glBindVertexArray(vertex_array_object);
     glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-
-    // grid
-    glLineWidth(1.0f);
-    set_transform(transform);
-    glUniform3f(location.uniform.base_color, 0, 1, 0);
-    glUniform1i(location.uniform.use_grid_transform, 1);
-    glDrawArraysInstanced(GL_LINES, 0, 4, 7);
-
-    glUniform1i(location.uniform.use_grid_transform, 0);
   }
 
   void set_color(float r, float g, float b)
   {
     glUniform3f(location.uniform.base_color, r, g, b);
+  }
+
+  void set_colorv(XMFLOAT3 const & value)
+  {
+    glUniform3fv(location.uniform.base_color, 1, (float const *)&value);
   }
 }

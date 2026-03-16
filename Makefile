@@ -33,7 +33,9 @@ OBJS = \
 	src/hud.o \
 	src/lighting.o \
 	src/collision_scene.o \
-	src/line_art.o
+	src/line_art.o \
+	src/boids.o \
+	src/boids_scene.o
 
 all: test.so
 
