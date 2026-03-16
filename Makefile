@@ -32,7 +32,8 @@ OBJS = \
 	src/minecraft.o \
 	src/hud.o \
 	src/lighting.o \
-	src/collision_scene.o
+	src/collision_scene.o \
+	src/line_art.o
 
 all: test.so
 

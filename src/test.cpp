@@ -17,6 +17,7 @@
 #include "minecraft.h"
 #include "hud.h"
 #include "lighting.h"
+#include "line_art.h"
 #include "collision_scene.h"
 #include "collision.h"
 
@@ -282,9 +283,10 @@ void load(const char * source_path)
   non_block::load_vertex_attributes();
 
   //////////////////////////////////////////////////////////////////////
-  // collision_scene
+  // debug scenes
   //////////////////////////////////////////////////////////////////////
 
+  line_art::load();
   collision_scene::load();
 }
 
@@ -535,31 +537,31 @@ void update_mouse(int x, int y)
 
 void draw()
 {
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-  glClearDepth(-1.0f);
+  if (false) {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearDepth(-1.0f);
 
-  // possibly re-initialize geometry buffer if window width/height changes
-  init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
+    // possibly re-initialize geometry buffer if window width/height changes
+    init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
 
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  minecraft::draw();
-  //draw_line();
-  non_block::draw();
+    minecraft::draw();
+    //draw_line();
+    non_block::draw();
 
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  lighting::draw();
-  //draw_quad();
-  hud::draw();
-
-  /*
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  collision_scene::draw();
-  */
+    lighting::draw();
+    //draw_quad();
+    hud::draw();
+  } else {
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    collision_scene::draw();
+  }
 
   last_frame_time = current_time;
 }
