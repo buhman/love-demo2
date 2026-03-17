@@ -2,7 +2,7 @@
 CC=$(PREFIX)gcc
 CXX=$(PREFIX)g++
 
-OPT = -O2 -march=x86-64-v3
+OPT = -O0 -march=x86-64-v3
 
 CSTD = -std=gnu23
 CXXSTD = -std=gnu++23
@@ -35,7 +35,11 @@ OBJS = \
 	src/collision_scene.o \
 	src/line_art.o \
 	src/boids.o \
-	src/boids_scene.o
+	src/boids_scene.o \
+	src/collada/scene.o \
+	src/collada/effect.o \
+	src/collada/node_state.o \
+	data/scenes/ship20/ship20.o
 
 all: test.so
 

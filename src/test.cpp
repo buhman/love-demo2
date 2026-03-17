@@ -21,6 +21,10 @@
 #include "collision_scene.h"
 #include "collision.h"
 #include "boids_scene.h"
+#include "collada/effect.h"
+#include "collada/scene.h"
+#include "collada/types.h"
+#include "data/scenes/ship20.h"
 
 struct line_location {
   struct {
@@ -49,6 +53,8 @@ static quad_location quad_location;
 //////////////////////////////////////////////////////////////////////
 // globals
 //////////////////////////////////////////////////////////////////////
+
+static collada::scene::state scene_state;
 
 unsigned int empty_vertex_array_object = -1;
 unsigned int quad_index_buffer = -1;
@@ -290,6 +296,13 @@ void load(const char * source_path)
   line_art::load();
   collision_scene::load();
   boids_scene::load();
+
+  //////////////////////////////////////////////////////////////////////
+  // collada
+  //////////////////////////////////////////////////////////////////////
+
+  collada::effect::load_effects();
+  scene_state.load_scene(&ship20::descriptor);
 }
 
 void update_keyboard(int up, int down, int left, int right,
@@ -569,7 +582,8 @@ void draw()
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //collision_scene::draw();
-    boids_scene::draw();
+    //boids_scene::draw();
+    scene_state.draw();
   }
 
   last_frame_time = current_time;
