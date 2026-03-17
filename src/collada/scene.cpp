@@ -177,10 +177,14 @@ namespace collada::scene {
     .elements_count = 2,
   };
 
+  const int vertex_buffer_stride_jw
+    = input_format_gl_size(skin_inputs.elements[0].format)
+    + input_format_gl_size(skin_inputs.elements[1].format);
+
   void state::load_layouts()
   {
     vertex_arrays = New<static_skinned>(descriptor->inputs_list_count);
-    vertex_buffer_strides = New<int>(descriptor->inputs_list_count);
+    vertex_buffer_strides_pnt = New<int>(descriptor->inputs_list_count);
 
     glGenVertexArrays(2 * descriptor->inputs_list_count, (unsigned int *)vertex_arrays);
 
@@ -190,7 +194,7 @@ namespace collada::scene {
                                0, // binding
                                0, // start_offset
                                vertex_arrays[i].static_mesh);
-      vertex_buffer_strides[i] = stride;
+      vertex_buffer_strides_pnt[i] = stride;
 
       // skinned
       load_layout(descriptor->inputs_list[i],
@@ -226,7 +230,6 @@ namespace collada::scene {
     int size;
     void * data = read_file(filename, &size);
     assert(data != NULL);
-    printf("%s %d\n", filename, size);
 
     unsigned int index_buffer;
     glGenBuffers(1, &index_buffer);
@@ -255,7 +258,7 @@ namespace collada::scene {
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-      load_dds_texture_2D(image->resource_name);
+      load_dds_texture_2D(image->uri);
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -339,20 +342,18 @@ namespace collada::scene {
     types::mesh const& mesh = geometry.mesh;
 
     for (int j = 0; j < instance_materials_count; j++) {
-      //if (j != 1)
-      //continue;
-
       types::instance_material const& instance_material = instance_materials[j];
       types::triangles const& triangles = mesh.triangles[instance_material.element_index];
 
       set_instance_material(instance_material);
 
-      unsigned int vertex_buffer_offset = mesh.vertex_buffer_offset;
-      unsigned int vertex_buffer_stride = vertex_buffer_strides[triangles.inputs_index];
       unsigned int vertex_array = vertex_arrays[triangles.inputs_index].static_mesh;
 
+      unsigned int vertex_buffer_offset_pnt = mesh.vertex_buffer_offset;
+      unsigned int vertex_buffer_stride_pnt = vertex_buffer_strides_pnt[triangles.inputs_index];
+
       glBindVertexArray(vertex_array);
-      glBindVertexBuffer(0, vertex_buffer_pnt, vertex_buffer_offset, vertex_buffer_stride);
+      glBindVertexBuffer(0, vertex_buffer_pnt, vertex_buffer_offset_pnt, vertex_buffer_stride_pnt);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
       unsigned int index_count = triangles.count * 3;
@@ -382,19 +383,77 @@ namespace collada::scene {
     }
   }
 
+  void state::draw_skin(types::skin const& skin,
+                        types::instance_material const * const instance_materials,
+                        int const instance_materials_count)
+  {
+    glUseProgram(collada::effect::program_skinned);
+
+    types::mesh const& mesh = skin.geometry->mesh;
+
+    for (int j = 0; j < instance_materials_count; j++) {
+      types::instance_material const& instance_material = instance_materials[j];
+      types::triangles const& triangles = mesh.triangles[instance_material.element_index];
+
+      set_instance_material(instance_material);
+
+      unsigned int vertex_array = vertex_arrays[triangles.inputs_index].skinned_mesh;
+
+      unsigned int vertex_buffer_offset_pnt = mesh.vertex_buffer_offset;
+      unsigned int vertex_buffer_stride_pnt = vertex_buffer_strides_pnt[triangles.inputs_index];
+      unsigned int vertex_buffer_offset_jw = skin.vertex_buffer_offset;
+
+      glBindVertexArray(vertex_array);
+      glBindVertexBuffer(0, vertex_buffer_pnt, vertex_buffer_offset_pnt, vertex_buffer_stride_pnt);
+      glBindVertexBuffer(1, vertex_buffer_jw, vertex_buffer_offset_jw, vertex_buffer_stride_jw);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+
+      unsigned int index_count = triangles.count * 3;
+      unsigned int indices = triangles.index_offset * (sizeof (unsigned int)) + mesh.index_buffer_offset;
+
+      unsigned int instance_count = 1;
+      unsigned int base_vertex = 0;
+      unsigned int base_instance = 0;
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES,
+                                                    index_count,
+                                                    GL_UNSIGNED_INT,
+                                                    (void *)((ptrdiff_t)indices),
+                                                    instance_count,
+                                                    base_vertex,
+                                                    base_instance);
+    }
+  }
+
+  void state::draw_instance_controllers(types::instance_controller const * const instance_controllers,
+                                        int const instance_controllers_count)
+  {
+    for (int i = 0; i < instance_controllers_count; i++) {
+      types::instance_controller const &instance_controller = instance_controllers[i];
+      types::skin const &skin = instance_controller.controller->skin;
+
+      draw_skin(skin,
+                instance_controller.instance_materials,
+                instance_controller.instance_materials_count);
+    }
+  }
+
   void state::draw_node(types::node const & node)
   {
     draw_instance_geometries(node.instance_geometries, node.instance_geometries_count);
+    draw_instance_controllers(node.instance_controllers, node.instance_controllers_count);
   }
 
   void state::draw()
   {
-    glUseProgram(collada::effect::program_static);
-    glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&view::state.float_transform);
-    glUniform1i(layout.uniform.emission_sampler, 0);
-    glUniform1i(layout.uniform.ambient_sampler, 1);
-    glUniform1i(layout.uniform.diffuse_sampler, 2);
-    glUniform1i(layout.uniform.specular_sampler, 3);
+    unsigned int effects[] = {collada::effect::program_static, collada::effect::program_skinned};
+    for (int i = 0; i < 2; i++) {
+      glUseProgram(effects[i]);
+      glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&view::state.float_transform);
+      glUniform1i(layout.uniform.emission_sampler, 0);
+      glUniform1i(layout.uniform.ambient_sampler, 1);
+      glUniform1i(layout.uniform.diffuse_sampler, 2);
+      glUniform1i(layout.uniform.specular_sampler, 3);
+    }
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_GREATER);

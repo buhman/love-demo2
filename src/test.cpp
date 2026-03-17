@@ -24,7 +24,9 @@
 #include "collada/effect.h"
 #include "collada/scene.h"
 #include "collada/types.h"
+
 #include "data/scenes/ship20.h"
+#include "data/scenes/noodle.h"
 
 struct line_location {
   struct {
@@ -302,7 +304,7 @@ void load(const char * source_path)
   //////////////////////////////////////////////////////////////////////
 
   collada::effect::load_effects();
-  scene_state.load_scene(&ship20::descriptor);
+  scene_state.load_scene(&noodle::descriptor);
 }
 
 void update_keyboard(int up, int down, int left, int right,

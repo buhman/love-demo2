@@ -104,7 +104,9 @@ namespace view {
     state.direction = get_direction(); // on forward/normal/pitch change
 
     // position
-    state.eye = XMVectorSet(-45.5f, 43.25f, 63.0f, 1);
-    state.at = state.eye + state.direction * at_distance;
+    //state.eye = XMVectorSet(-45.5f, 43.25f, 63.0f, 1);
+    //state.at = state.eye + state.direction * at_distance;
+    state.at = XMVectorSet(0, 0, 0, 1);
+    state.eye = XMVectorSet(0, -10, 0, 1);
   }
 }

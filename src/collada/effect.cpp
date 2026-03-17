@@ -12,5 +12,9 @@ namespace collada::effect {
     program_static = compile_from_files("shader/collada/static.vert",
                                         nullptr,
                                         "shader/collada/generic.frag");
+
+    program_skinned = compile_from_files("shader/collada/skinned.vert",
+                                         nullptr,
+                                         "shader/collada/generic.frag");
   }
 }

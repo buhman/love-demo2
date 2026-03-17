@@ -40,7 +40,8 @@ OBJS = \
 	src/collada/scene.o \
 	src/collada/effect.o \
 	src/collada/node_state.o \
-	data/scenes/ship20/ship20.o
+	data/scenes/ship20/ship20.o \
+	data/scenes/noodle/noodle.o
 
 all: test.so
 
