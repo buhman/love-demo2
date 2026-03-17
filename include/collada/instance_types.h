@@ -21,8 +21,12 @@ namespace collada::instance_types {
     types::transform_type type;
   };
 
-  struct node_instance {
-    transform * transforms = NULL;
+  struct node {
+    // immutable state
+    types::node const * node;
+
+    // mutable state
+    transform * transforms;
     XMMATRIX world;
   };
 }

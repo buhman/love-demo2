@@ -14,6 +14,7 @@
 #include "collada/instance_types.h"
 #include "collada/scene.h"
 #include "collada/effect.h"
+#include "collada/animate.h"
 
 namespace collada::scene {
 
@@ -275,6 +276,8 @@ namespace collada::scene {
     index_buffer = load_index_buffer(descriptor->index_buffer);
 
     load_images();
+
+    node_state.allocate_node_instances(descriptor->nodes, descriptor->nodes_count);
   }
 
   void state::set_color_or_texture(types::color_or_texture const& color_or_texture,
@@ -337,8 +340,6 @@ namespace collada::scene {
                             types::instance_material const * const instance_materials,
                             int const instance_materials_count)
   {
-    glUseProgram(collada::effect::program_static);
-
     types::mesh const& mesh = geometry.mesh;
 
     for (int j = 0; j < instance_materials_count; j++) {
@@ -437,10 +438,23 @@ namespace collada::scene {
     }
   }
 
-  void state::draw_node(types::node const & node)
+  void state::draw_node(types::node const & node, instance_types::node const & node_instance)
   {
-    draw_instance_geometries(node.instance_geometries, node.instance_geometries_count);
-    draw_instance_controllers(node.instance_controllers, node.instance_controllers_count);
+    XMMATRIX transform = node_instance.world * view::state.transform;
+    XMFLOAT4X4 float_transform;
+    XMStoreFloat4x4(&float_transform, transform);
+
+    if (node.instance_geometries_count) {
+      glUseProgram(collada::effect::program_static);
+      glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&float_transform);
+      draw_instance_geometries(node.instance_geometries, node.instance_geometries_count);
+    }
+
+    if (node.instance_controllers_count) {
+      glUseProgram(collada::effect::program_static);
+      glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&float_transform);
+      draw_instance_controllers(node.instance_controllers, node.instance_controllers_count);
+    }
   }
 
   void state::draw()
@@ -448,7 +462,6 @@ namespace collada::scene {
     unsigned int effects[] = {collada::effect::program_static, collada::effect::program_skinned};
     for (int i = 0; i < 2; i++) {
       glUseProgram(effects[i]);
-      glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&view::state.float_transform);
       glUniform1i(layout.uniform.emission_sampler, 0);
       glUniform1i(layout.uniform.ambient_sampler, 1);
       glUniform1i(layout.uniform.diffuse_sampler, 2);
@@ -468,7 +481,27 @@ namespace collada::scene {
       if (node.type != types::node_type::NODE)
         continue;
 
-      draw_node(node);
+      draw_node(node, node_state.node_instances[i]);
     }
+  }
+
+  void state::update(float t)
+  {
+    t = animate::loop(t / 4.0f, 3.333333f);
+
+    for (int i = 0; i < descriptor->nodes_count; i++) {
+      animate::animate_node(node_state.node_instances[i], t);
+      node_state.update_node_world_transform(node_state.node_instances[i]);
+    }
+  }
+
+  instance_types::node * state::find_node_by_name(char const * name)
+  {
+    for (int i = 0; i < descriptor->nodes_count; i++) {
+      if (strcmp(node_state.node_instances[i].node->name, name) == 0) {
+        return &node_state.node_instances[i];
+      }
+    }
+    return nullptr;
   }
 }

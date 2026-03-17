@@ -9,3 +9,15 @@ PYTHONPATH=~/d3d10 python -m collada.main \
 
 PYTHONPATH=~/d3d10 python -m collada.main \
                    include/data/scenes/noodle.h
+
+# shadow_test
+
+PYTHONPATH=~/d3d10 python -m collada.main \
+                   ~/love-demo/scene/shadow_test/shadow_test.DAE \
+                   data/scenes/shadow_test/shadow_test.cpp \
+                   data/scenes/shadow_test/shadow_test.vtx \
+                   data/scenes/shadow_test/shadow_test.vjw \
+                   data/scenes/shadow_test/shadow_test.idx
+
+PYTHONPATH=~/d3d10 python -m collada.main \
+                   include/data/scenes/shadow_test.h

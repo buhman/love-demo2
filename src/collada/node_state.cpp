@@ -1,11 +1,19 @@
+#include <stdio.h>
+
 #include "directxmath/directxmath.h"
 
-#include "collada/types.h"
-#include "collada/instance_types.h"
+#include "new.h"
+
+#include "collada/node_state.h"
 
 namespace collada::node_state {
-  inline static void load_transform(instance_types::transform * instance_transform,
-                                    types::transform const & transform)
+
+  //////////////////////////////////////////////////////////////////////
+  // transforms
+  //////////////////////////////////////////////////////////////////////
+
+  inline static void load_transform(types::transform const & transform,
+                                    instance_types::transform * instance_transform)
   {
     switch (transform.type) {
     case types::transform_type::LOOKAT:
@@ -28,16 +36,36 @@ namespace collada::node_state {
     default:
       assert(false);
     }
+    instance_transform->type = transform.type;
   }
 
-  void initialize_node_transforms(types::node const * const node,
-                                  instance_types::node_instance * const node_instance)
+  inline static void initialize_node_transforms(instance_types::node & node_instance)
   {
-    for (int i = 0; i < node->transforms_count; i++) {
-      load_transform(&node_instance->transforms[i],
-                     node->transforms[i]);
+    for (int i = 0; i < node_instance.node->transforms_count; i++) {
+      load_transform(node_instance.node->transforms[i], &node_instance.transforms[i]);
     }
   }
+
+  inline static void allocate_node_instance(instance_types::node & node_instance,
+                                            types::node const * const node)
+  {
+    node_instance.node = node;
+    node_instance.transforms = New<instance_types::transform>(node->transforms_count);
+
+    initialize_node_transforms(node_instance);
+  }
+
+  void state::allocate_node_instances(types::node const * const * const nodes, int nodes_count)
+  {
+    node_instances = New<instance_types::node>(nodes_count);
+    for (int i = 0; i < nodes_count; i++) {
+      allocate_node_instance(node_instances[i], nodes[i]);
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // world matrix
+  //////////////////////////////////////////////////////////////////////
 
   inline static bool vector_equal(XMVECTOR V1, XMVECTOR V2)
   {
@@ -60,8 +88,25 @@ namespace collada::node_state {
     case types::transform_type::MATRIX:
       return transform.matrix;
     default:
+      fprintf(stderr, "unknown transform type %d\n", (int)transform.type);
       assert(false);
       break;
     }
+  }
+
+  void state::update_node_world_transform(instance_types::node & node_instance)
+  {
+    XMMATRIX world;
+
+    if (node_instance.node->parent_index >= 0)
+      world = node_instances[node_instance.node->parent_index].world;
+    else
+      world = XMMatrixIdentity();
+
+    for (int i = 0; i < node_instance.node->transforms_count; i++) {
+      world = transform_matrix(node_instance.transforms[i]) * world;
+    }
+
+    node_instance.world = world;
   }
 }

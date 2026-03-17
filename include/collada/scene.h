@@ -1,6 +1,8 @@
 #pragma once
 
 #include "collada/types.h"
+#include "collada/instance_types.h"
+#include "collada/node_state.h"
 
 namespace collada::scene {
   struct static_skinned {
@@ -10,6 +12,7 @@ namespace collada::scene {
 
   struct state {
     types::descriptor const * descriptor;
+    node_state::state node_state;
 
     unsigned int vertex_buffer_pnt;
     unsigned int vertex_buffer_jw;
@@ -20,6 +23,7 @@ namespace collada::scene {
 
     unsigned int * textures;
 
+    // drawing
     void load_layouts();
     void load_images();
     void load_scene(types::descriptor const * const descriptor);
@@ -40,7 +44,13 @@ namespace collada::scene {
     void draw_instance_controllers(types::instance_controller const * const instance_controllers,
                                    int const instance_controllers_count);
 
-    void draw_node(types::node const & node);
+    void draw_node(types::node const & node, instance_types::node const & node_instance);
     void draw();
+
+    // state updates
+    void update(float t);
+
+    // query
+    instance_types::node * find_node_by_name(char const * name);
   };
 }

@@ -1,14 +1,13 @@
-  static inline float fract(float f)
-  {
-    return f - floorf(f);
-  }
+#include <stdio.h>
 
-  static inline float loop(float f, float n)
-  {
-    return fract(f / n) * n;
-  }
+#include "directxmath/directxmath.h"
 
-  static inline int find_frame_ix(source const& source, float t)
+#include "collada/types.h"
+#include "collada/instance_types.h"
+
+namespace collada::animate {
+
+  static inline int find_frame_ix(types::source const& source, float t)
   {
     for (int i = 0; i < source.count - 1; i++) {
       if (source.float_array[i] <= t && source.float_array[i+1] > t) {
@@ -18,14 +17,14 @@
     return -1;
   }
 
-  static inline float linear_interpolate_iv(source const& source, int frame_ix, float t)
+  static inline float linear_interpolate_iv(types::source const& source, int frame_ix, float t)
   {
     float prev = source.float_array[(frame_ix+0) * source.stride];
     float next = source.float_array[(frame_ix+1) * source.stride];
     return (t - prev) / (next - prev);
   }
 
-  static inline float linear_interpolate_value(source const& source, int frame_ix, int parameter_ix, float iv)
+  static inline float linear_interpolate_value(types::source const& source, int frame_ix, int parameter_ix, float iv)
   {
     float prev = source.float_array[(frame_ix+0) * source.stride + parameter_ix];
     float next = source.float_array[(frame_ix+1) * source.stride + parameter_ix];
@@ -76,20 +75,20 @@
       }
     }
 
-    print("%f %f\n", XMVectorGetX(p0), XMVectorGetY(p0));
-    print("%f %f\n", XMVectorGetX(c0), XMVectorGetY(c0));
-    print("%f %f\n", XMVectorGetX(c1), XMVectorGetY(c1));
-    print("%f %f\n", XMVectorGetX(p1), XMVectorGetY(p1));
+    fprintf(stderr, "%f %f\n", XMVectorGetX(p0), XMVectorGetY(p0));
+    fprintf(stderr, "%f %f\n", XMVectorGetX(c0), XMVectorGetY(c0));
+    fprintf(stderr, "%f %f\n", XMVectorGetX(c1), XMVectorGetY(c1));
+    fprintf(stderr, "%f %f\n", XMVectorGetX(p1), XMVectorGetY(p1));
     assert(false);
   }
 
-  static inline XMFLOAT2 const * tangent_index(source const& source, int frame_ix, int parameter_ix)
+  static inline XMFLOAT2 const * tangent_index(types::source const& source, int frame_ix, int parameter_ix)
   {
     int ix = frame_ix * source.stride + parameter_ix * 2;
     return (XMFLOAT2 const *)&source.float_array[ix];
   }
 
-  static float bezier_sampler(sampler const * const sampler, int frame_ix, int parameter_ix, float t)
+  static float bezier_sampler(types::sampler const * const sampler, int frame_ix, int parameter_ix, float t)
   {
     /*
       P0 is (INPUT[i] , OUTPUT[i])
@@ -112,25 +111,25 @@
     return bezier_binary_search(p0, c0, c1, p1, t);
   }
 
-  static void apply_transform_target(transform& transform,
-                                     enum target_attribute channel_target_attribute,
+  static void apply_transform_target(instance_types::transform& transform,
+                                     enum types::target_attribute channel_target_attribute,
                                      float value)
   {
     switch (transform.type) {
-    case transform_type::TRANSLATE: __attribute__((fallthrough));
-    case transform_type::SCALE:
+    case types::transform_type::TRANSLATE: __attribute__((fallthrough));
+    case types::transform_type::SCALE:
       switch (channel_target_attribute) {
-      case target_attribute::X: transform.vector = XMVectorSetX(transform.vector, value); return;
-      case target_attribute::Y: transform.vector = XMVectorSetY(transform.vector, value); return;
-      case target_attribute::Z: transform.vector = XMVectorSetZ(transform.vector, value); return;
+      case types::target_attribute::X: transform.vector = XMVectorSetX(transform.vector, value); return;
+      case types::target_attribute::Y: transform.vector = XMVectorSetY(transform.vector, value); return;
+      case types::target_attribute::Z: transform.vector = XMVectorSetZ(transform.vector, value); return;
       default: assert(false);
       }
-    case transform_type::ROTATE:
+    case types::transform_type::ROTATE:
       switch (channel_target_attribute) {
-      case target_attribute::X: transform.vector = XMVectorSetX(transform.vector, value); return;
-      case target_attribute::Y: transform.vector = XMVectorSetY(transform.vector, value); return;
-      case target_attribute::Z: transform.vector = XMVectorSetZ(transform.vector, value); return;
-      case target_attribute::ANGLE: transform.vector = XMVectorSetW(transform.vector, value); return;
+      case types::target_attribute::X: transform.vector = XMVectorSetX(transform.vector, value); return;
+      case types::target_attribute::Y: transform.vector = XMVectorSetY(transform.vector, value); return;
+      case types::target_attribute::Z: transform.vector = XMVectorSetZ(transform.vector, value); return;
+      case types::target_attribute::ANGLE: transform.vector = XMVectorSetW(transform.vector, value); return;
       default: assert(false);
       }
     default:
@@ -139,33 +138,33 @@
     }
   }
 
-  static enum target_attribute const rotate_target_attributes[] = {
-    target_attribute::X,
-    target_attribute::Y,
-    target_attribute::Z,
-    target_attribute::ANGLE,
+  static enum types::target_attribute const rotate_target_attributes[] = {
+    types::target_attribute::X,
+    types::target_attribute::Y,
+    types::target_attribute::Z,
+    types::target_attribute::ANGLE,
   };
 
-  static enum target_attribute const translate_scale_target_attributes[] = {
-    target_attribute::X,
-    target_attribute::Y,
-    target_attribute::Z,
+  static enum types::target_attribute const translate_scale_target_attributes[] = {
+    types::target_attribute::X,
+    types::target_attribute::Y,
+    types::target_attribute::Z,
   };
 
-  static void animate_channel_segment(channel const& channel,
-                                      transform& transform,
+  static void animate_channel_segment(types::channel const& channel,
+                                      instance_types::transform& transform,
                                       int frame_ix, float t)
   {
-    enum target_attribute const * target_attributes = &channel.target_attribute;
+    enum types::target_attribute const * target_attributes = &channel.target_attribute;
     int target_attributes_count = 1;
-    if (channel.target_attribute == target_attribute::ALL) {
+    if (channel.target_attribute == types::target_attribute::ALL) {
       switch (transform.type) {
-      case transform_type::TRANSLATE: __attribute__((fallthrough));
-      case transform_type::SCALE:
+      case types::transform_type::TRANSLATE: __attribute__((fallthrough));
+      case types::transform_type::SCALE:
         target_attributes = translate_scale_target_attributes;
         target_attributes_count = 3;
         break;
-      case transform_type::ROTATE:
+      case types::transform_type::ROTATE:
         target_attributes = rotate_target_attributes;
         target_attributes_count = 4;
         break;
@@ -177,10 +176,10 @@
 
     for (int parameter_ix = 0; parameter_ix < target_attributes_count; parameter_ix++) {
 
-      enum collada::interpolation interpolation = channel.source_sampler->interpolation.interpolation_array[frame_ix];
+      enum types::interpolation interpolation = channel.source_sampler->interpolation.interpolation_array[frame_ix];
 
       float value;
-      if (interpolation == interpolation::BEZIER) {
+      if (interpolation == types::interpolation::BEZIER) {
         value = bezier_sampler(channel.source_sampler, frame_ix, parameter_ix, t);
       } else {
         float iv = linear_interpolate_iv(channel.source_sampler->input, frame_ix, t);
@@ -191,11 +190,11 @@
     }
   }
 
-  static void animate_node(node const& node, node_instance& node_instance, float t)
+  void animate_node(instance_types::node& node_instance, float t)
   {
-    for (int i = 0; i < node.channels_count; i++) {
-      channel const& channel = *node.channels[i];
-      transform& transform = node_instance.transforms[channel.target_transform_index];
+    for (int i = 0; i < node_instance.node->channels_count; i++) {
+      types::channel const& channel = *node_instance.node->channels[i];
+      instance_types::transform& transform = node_instance.transforms[channel.target_transform_index];
 
       int frame_ix = find_frame_ix(channel.source_sampler->input, t);
       assert(frame_ix >= 0); // animation is missing a key frame
@@ -203,3 +202,4 @@
       animate_channel_segment(channel, transform, frame_ix, t);
     }
   }
+}

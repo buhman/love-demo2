@@ -24,9 +24,11 @@
 #include "collada/effect.h"
 #include "collada/scene.h"
 #include "collada/types.h"
+#include "collada/instance_types.h"
 
 #include "data/scenes/ship20.h"
 #include "data/scenes/noodle.h"
+#include "data/scenes/shadow_test.h"
 
 struct line_location {
   struct {
@@ -72,6 +74,9 @@ static target_type const geometry_buffer_pnc_types[3] = {
   [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
   [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
 };
+
+collada::instance_types::node * node_eye;
+collada::instance_types::node * node_at;
 
 void load_quad_index_buffer()
 {
@@ -304,7 +309,11 @@ void load(const char * source_path)
   //////////////////////////////////////////////////////////////////////
 
   collada::effect::load_effects();
-  scene_state.load_scene(&noodle::descriptor);
+  scene_state.load_scene(&shadow_test::descriptor);
+  node_eye = scene_state.find_node_by_name("Camera001");
+  assert(node_eye != nullptr);
+  node_at = scene_state.find_node_by_name("Camera001.Target");
+  assert(node_at != nullptr);
 }
 
 void update_keyboard(int up, int down, int left, int right,
@@ -416,8 +425,11 @@ void update_joystick(int joystick_index,
   }
   */
 
-  view::state.at = view::state.at + direction;
-  view::state.eye = view::state.at - view::state.direction * view::at_distance;
+  view::state.eye = view::state.eye + direction;
+  //view::state.at = view::state.at - view::state.direction * view::at_distance;
+
+  //view::state.at = view::state.at + direction;
+  //view::state.eye = view::state.at - view::state.direction * view::at_distance;
 
   /*
   lighting.quadratic += 0.01 * a + -0.01 * b;
@@ -439,6 +451,10 @@ void update_joystick(int joystick_index,
 void update(float time)
 {
   current_time = time;
+
+  scene_state.update(time);
+  view::state.eye = XMVector3Transform(XMVectorZero(), node_eye->world);
+  view::state.at = XMVector3Transform(XMVectorZero(), node_at->world);
 
   view::update_transforms();
 }

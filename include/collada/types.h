@@ -362,6 +362,8 @@ namespace collada::types {
   //////////////////////////////////////////////////////////////////////
 
   struct node {
+    char const * name;
+
     int const parent_index;
 
     node_type const type;
