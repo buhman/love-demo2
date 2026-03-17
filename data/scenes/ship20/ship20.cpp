@@ -23,7 +23,7 @@ light const light_omni003_light = {
 
 // shipple2_png
 image const image_shipple2_png = {
-  .resource_name = "_0_SHIPPLE2_PNG",
+  .resource_name = "data/scenes/ship20/shipple2.dds",
 };
 
 image const * const images[] = {

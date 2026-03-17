@@ -380,6 +380,7 @@ void update_joystick(int joystick_index,
                                                            delta_yaw, delta_pitch);
   view::apply_fov(0.01 * up + -0.01 * down);
 
+  /*
   XMVECTOR sphere_position = view::state.at;
 
   float sphere_radius = 0.48;
@@ -411,7 +412,9 @@ void update_joystick(int joystick_index,
     // apply the last direction impulse
     view::state.at = sphere.center + direction;
   }
+  */
 
+  view::state.at = view::state.at + direction;
   view::state.eye = view::state.at - view::state.direction * view::at_distance;
 
   /*
@@ -558,10 +561,9 @@ void update_mouse(int x, int y)
 
 void draw()
 {
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearDepth(-1.0f);
   if (false) {
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearDepth(-1.0f);
-
     // possibly re-initialize geometry buffer if window width/height changes
     init_geometry_buffer(geometry_buffer_pnc, geometry_buffer_pnc_types);
 

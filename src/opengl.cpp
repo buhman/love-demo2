@@ -7,12 +7,13 @@
 #include "glad/gl.h"
 #include "opengl.h"
 #include "file.h"
+#include "dds_validate.h"
 
-unsigned int compile(const char * vertex_source,
+unsigned int compile(char const * vertex_source,
                      int vertex_source_size,
-                     const char * geometry_source,
+                     char const * geometry_source,
                      int geometry_source_size,
-                     const char * fragment_source,
+                     char const * fragment_source,
                      int fragment_source_size)
 {
   int compile_status;
@@ -75,16 +76,16 @@ unsigned int compile(const char * vertex_source,
   return shader_program;
 }
 
-unsigned int compile_from_files(const char * vertex_path,
-                                const char * geometry_path,
-                                const char * fragment_path)
+unsigned int compile_from_files(char const * vertex_path,
+                                char const * geometry_path,
+                                char const * fragment_path)
 {
   int vertex_source_size = 0;
-  char * vertex_source = NULL;
+  void * vertex_source = NULL;
   int geometry_source_size = 0;
-  char * geometry_source = NULL;
+  void * geometry_source = NULL;
   int fragment_source_size = 0;
-  char * fragment_source = NULL;
+  void * fragment_source = NULL;
 
   vertex_source = read_file(vertex_path, &vertex_source_size);
   assert(vertex_source != NULL);
@@ -97,9 +98,9 @@ unsigned int compile_from_files(const char * vertex_path,
   fragment_source = read_file(fragment_path, &fragment_source_size);
   assert(fragment_source != NULL);
 
-  unsigned int program = compile(vertex_source, vertex_source_size,
-                                 geometry_source, geometry_source_size,
-                                 fragment_source, fragment_source_size);
+  unsigned int program = compile((char const *)vertex_source, vertex_source_size,
+                                 (char const *)geometry_source, geometry_source_size,
+                                 (char const *)fragment_source, fragment_source_size);
 
   free(vertex_source);
   free(geometry_source);
@@ -124,4 +125,28 @@ unsigned int load_uniform_buffer(char const * const path)
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
   return buffer;
+}
+
+void load_dds_texture_2D(char const * const path)
+{
+  fprintf(stderr, "load DDS texture: %s\n", path);
+
+  int size;
+  void * data = read_file(path, &size);
+  assert(data != NULL);
+
+  void * image_data;
+  int image_size;
+  DDS_FILE const * dds = dds_validate(data, size, &image_data, &image_size);
+
+  glCompressedTexImage2D(GL_TEXTURE_2D,
+                         0,
+                         GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
+                         dds->header.dwWidth,
+                         dds->header.dwHeight,
+                         0,
+                         image_size,
+                         image_data);
+
+  free(data);
 }

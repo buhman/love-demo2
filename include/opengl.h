@@ -10,6 +10,8 @@ extern "C" {
 
   unsigned int load_uniform_buffer(char const * const path);
 
+  void load_dds_texture_2D(char const * const path);
+
 #ifdef __cplusplus
 }
 #endif

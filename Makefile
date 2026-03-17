@@ -36,6 +36,7 @@ OBJS = \
 	src/line_art.o \
 	src/boids.o \
 	src/boids_scene.o \
+	src/dds_validate.o \
 	src/collada/scene.o \
 	src/collada/effect.o \
 	src/collada/node_state.o \

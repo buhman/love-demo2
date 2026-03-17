@@ -18,8 +18,16 @@ namespace collada::scene {
     static_skinned * vertex_arrays;
     int * vertex_buffer_strides;
 
+    unsigned int * textures;
+
     void load_layouts();
+    void load_images();
     void load_scene(types::descriptor const * const descriptor);
+
+    void set_color_or_texture(types::color_or_texture const& color_or_texture,
+                              unsigned int color_uniform,
+                              unsigned int texture_unit);
+    void set_instance_material(types::instance_material const& instance_material);
 
     void draw_geometry(types::geometry const & geometry,
                        types::instance_material const * const instance_materials,
