@@ -309,7 +309,7 @@ void load(const char * source_path)
   //////////////////////////////////////////////////////////////////////
 
   collada::effect::load_effects();
-  scene_state.load_scene(&shadow_test::descriptor);
+  scene_state.load_scene(&noodle::descriptor);
   node_eye = scene_state.find_node_by_name("Camera001");
   assert(node_eye != nullptr);
   node_at = scene_state.find_node_by_name("Camera001.Target");

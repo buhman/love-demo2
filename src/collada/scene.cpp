@@ -50,6 +50,9 @@ namespace collada::scene {
       unsigned int diffuse;
       unsigned int specular;
     } texture_unit;
+    struct {
+      unsigned int joint;
+    } binding;
   };
 
   const layout layout = {
@@ -83,6 +86,9 @@ namespace collada::scene {
       .ambient = GL_TEXTURE1,
       .diffuse = GL_TEXTURE2,
       .specular = GL_TEXTURE3,
+    },
+    .binding {
+      .joint = 0,
     },
   };
 
@@ -151,7 +157,11 @@ namespace collada::scene {
       glEnableVertexAttribArray(location);
       unsigned int gl_size = input_format_gl_size(inputs.elements[i].format);
       unsigned int gl_type = input_format_gl_type(inputs.elements[i].format);
-      glVertexAttribFormat(location, gl_size, gl_type, GL_FALSE, offset);
+      if (gl_type == GL_INT) {
+        glVertexAttribIFormat(location, gl_size, gl_type, offset);
+      } else {
+        glVertexAttribFormat(location, gl_size, gl_type, GL_FALSE, offset);
+      }
       glVertexAttribBinding(location, binding);
       offset += gl_size * 4;
     }
@@ -179,8 +189,8 @@ namespace collada::scene {
   };
 
   const int vertex_buffer_stride_jw
-    = input_format_gl_size(skin_inputs.elements[0].format)
-    + input_format_gl_size(skin_inputs.elements[1].format);
+    = 4 * input_format_gl_size(skin_inputs.elements[0].format)
+    + 4 * input_format_gl_size(skin_inputs.elements[1].format);
 
   void state::load_layouts()
   {
@@ -209,7 +219,7 @@ namespace collada::scene {
     }
   }
 
-  unsigned int load_vertex_buffer(const char * filename)
+  static unsigned int load_vertex_buffer(const char * filename)
   {
     int size;
     void * data = read_file(filename, &size);
@@ -226,7 +236,7 @@ namespace collada::scene {
     return vertex_buffer;
   }
 
-  unsigned int load_index_buffer(const char * filename)
+  static unsigned int load_index_buffer(const char * filename)
   {
     int size;
     void * data = read_file(filename, &size);
@@ -265,6 +275,13 @@ namespace collada::scene {
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
+  static unsigned int load_uniform_buffer()
+  {
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    return buffer;
+  }
+
   void state::load_scene(types::descriptor const * const descriptor)
   {
     this->descriptor = descriptor;
@@ -274,6 +291,7 @@ namespace collada::scene {
     vertex_buffer_pnt = load_vertex_buffer(descriptor->position_normal_texture_buffer);
     vertex_buffer_jw = load_vertex_buffer(descriptor->joint_weight_buffer);
     index_buffer = load_index_buffer(descriptor->index_buffer);
+    joint_uniform_buffer = load_uniform_buffer();
 
     load_images();
 
@@ -432,6 +450,21 @@ namespace collada::scene {
       types::instance_controller const &instance_controller = instance_controllers[i];
       types::skin const &skin = instance_controller.controller->skin;
 
+      XMFLOAT4X4 joints[instance_controller.joint_count];
+      int joints_size = (sizeof (joints));
+      for (int joint_index = 0; joint_index < instance_controller.joint_count; joint_index++) {
+        XMMATRIX ibm = XMLoadFloat4x4((XMFLOAT4X4*)&skin.inverse_bind_matrices[joint_index]);
+        int node_index = instance_controller.joint_node_indices[joint_index];
+        instance_types::node& node_instance = node_state.node_instances[node_index];
+
+        XMStoreFloat4x4(&joints[joint_index], ibm * node_instance.world);
+      }
+      glBindBuffer(GL_UNIFORM_BUFFER, joint_uniform_buffer);
+      glBufferData(GL_UNIFORM_BUFFER, joints_size, (void *)&joints[0], GL_DYNAMIC_DRAW);
+      glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+      glBindBufferRange(GL_UNIFORM_BUFFER, layout.binding.joint, joint_uniform_buffer, 0, joints_size);
+
       draw_skin(skin,
                 instance_controller.instance_materials,
                 instance_controller.instance_materials_count);
@@ -451,7 +484,7 @@ namespace collada::scene {
     }
 
     if (node.instance_controllers_count) {
-      glUseProgram(collada::effect::program_static);
+      glUseProgram(collada::effect::program_skinned);
       glUniformMatrix4fv(layout.uniform.transform, 1, false, (float *)&float_transform);
       draw_instance_controllers(node.instance_controllers, node.instance_controllers_count);
     }

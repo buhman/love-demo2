@@ -17,6 +17,7 @@ namespace collada::scene {
     unsigned int vertex_buffer_pnt;
     unsigned int vertex_buffer_jw;
     unsigned int index_buffer;
+    unsigned int joint_uniform_buffer;
 
     static_skinned * vertex_arrays;
     int * vertex_buffer_strides_pnt;

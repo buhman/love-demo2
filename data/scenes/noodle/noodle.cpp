@@ -1913,6 +1913,8 @@ channel const * const node_channels_node_environmentambientlight[] = {
 };
 
 node const node_node_environmentambientlight = {
+  .name = "EnvironmentAmbientLight",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -1953,6 +1955,8 @@ channel const * const node_channels_node_cameratargethelper[] = {
 };
 
 node const node_node_cameratargethelper = {
+  .name = "CameraTargetHelper",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -1993,6 +1997,8 @@ channel const * const node_channels_node_camera_target[] = {
 };
 
 node const node_node_camera_target = {
+  .name = "Camera.Target",
+
   .parent_index = 1,
 
   .type = node_type::NODE,
@@ -2040,6 +2046,8 @@ channel const * const node_channels_node_omni001[] = {
 };
 
 node const node_node_omni001 = {
+  .name = "Omni001",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -2103,6 +2111,8 @@ channel const * const node_channels_node_box001[] = {
 };
 
 node const node_node_box001 = {
+  .name = "Box001",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -2143,6 +2153,8 @@ channel const * const node_channels_node_bonehelper[] = {
 };
 
 node const node_node_bonehelper = {
+  .name = "BoneHelper",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -2204,18 +2216,20 @@ instance_light const instance_lights_node_bone001[] = {
 };
 
 channel const * const node_channels_node_bone001[] = {
-  &node_channel_node_bone001_translation_x,
-  &node_channel_node_bone001_translation_z,
-  &node_channel_node_bone001_scale,
-  &node_channel_node_bone001_translation_y,
-  &node_channel_node_bone001_rotationz_angle,
-  &node_channel_node_bone001_scaleaxisrotation,
-  &node_channel_node_bone001_rotationx_angle,
   &node_channel_node_bone001_rotationy_angle,
+  &node_channel_node_bone001_rotationz_angle,
+  &node_channel_node_bone001_translation_y,
+  &node_channel_node_bone001_translation_z,
+  &node_channel_node_bone001_rotationx_angle,
   &node_channel_node_bone001_inversescaleaxisrotation,
+  &node_channel_node_bone001_scale,
+  &node_channel_node_bone001_scaleaxisrotation,
+  &node_channel_node_bone001_translation_x,
 };
 
 node const node_node_bone001 = {
+  .name = "Bone001",
+
   .parent_index = 5,
 
   .type = node_type::JOINT,
@@ -2277,18 +2291,20 @@ instance_light const instance_lights_node_bone002[] = {
 };
 
 channel const * const node_channels_node_bone002[] = {
-  &node_channel_node_bone002_translation_x,
-  &node_channel_node_bone002_inversescaleaxisrotation,
   &node_channel_node_bone002_translation_y,
   &node_channel_node_bone002_scale,
-  &node_channel_node_bone002_rotationx_angle,
-  &node_channel_node_bone002_rotationy_angle,
+  &node_channel_node_bone002_inversescaleaxisrotation,
   &node_channel_node_bone002_scaleaxisrotation,
+  &node_channel_node_bone002_translation_x,
+  &node_channel_node_bone002_rotationy_angle,
   &node_channel_node_bone002_rotationz_angle,
+  &node_channel_node_bone002_rotationx_angle,
   &node_channel_node_bone002_translation_z,
 };
 
 node const node_node_bone002 = {
+  .name = "Bone002",
+
   .parent_index = 6,
 
   .type = node_type::JOINT,
@@ -2350,18 +2366,20 @@ instance_light const instance_lights_node_bone003[] = {
 };
 
 channel const * const node_channels_node_bone003[] = {
-  &node_channel_node_bone003_translation_y,
-  &node_channel_node_bone003_rotationy_angle,
-  &node_channel_node_bone003_translation_x,
-  &node_channel_node_bone003_rotationz_angle,
-  &node_channel_node_bone003_inversescaleaxisrotation,
-  &node_channel_node_bone003_rotationx_angle,
-  &node_channel_node_bone003_translation_z,
-  &node_channel_node_bone003_scaleaxisrotation,
   &node_channel_node_bone003_scale,
+  &node_channel_node_bone003_rotationz_angle,
+  &node_channel_node_bone003_rotationy_angle,
+  &node_channel_node_bone003_rotationx_angle,
+  &node_channel_node_bone003_scaleaxisrotation,
+  &node_channel_node_bone003_translation_y,
+  &node_channel_node_bone003_inversescaleaxisrotation,
+  &node_channel_node_bone003_translation_z,
+  &node_channel_node_bone003_translation_x,
 };
 
 node const node_node_bone003 = {
+  .name = "Bone003",
+
   .parent_index = 7,
 
   .type = node_type::JOINT,
@@ -2402,6 +2420,8 @@ channel const * const node_channels_node_camerahelper_1[] = {
 };
 
 node const node_node_camerahelper_1 = {
+  .name = "CameraHelper",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -2442,6 +2462,8 @@ channel const * const node_channels_node_camera001[] = {
 };
 
 node const node_node_camera001 = {
+  .name = "Camera001",
+
   .parent_index = 9,
 
   .type = node_type::NODE,
@@ -2482,6 +2504,8 @@ channel const * const node_channels_node_cameratargethelper_1[] = {
 };
 
 node const node_node_cameratargethelper_1 = {
+  .name = "CameraTargetHelper",
+
   .parent_index = -1,
 
   .type = node_type::NODE,
@@ -2522,6 +2546,8 @@ channel const * const node_channels_node_camera001_target[] = {
 };
 
 node const node_node_camera001_target = {
+  .name = "Camera001.Target",
+
   .parent_index = 11,
 
   .type = node_type::NODE,

@@ -80,7 +80,9 @@ namespace collada::node_state {
     case types::transform_type::TRANSLATE:
       return XMMatrixTranslationFromVector(transform.vector);
     case types::transform_type::ROTATE:
-      assert(!vector_equal(XMVectorSetW(transform.vector, 0), XMVectorZero()));
+      //assert(!vector_equal(XMVectorSetW(transform.vector, 0), XMVectorZero()));
+      if (vector_equal(XMVectorSetW(transform.vector, 0), XMVectorZero()))
+        return XMMatrixIdentity();
       return XMMatrixRotationNormal(transform.vector,
                                     XMConvertToRadians(XMVectorGetW(transform.vector)));
     case types::transform_type::SCALE:

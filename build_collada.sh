@@ -1,7 +1,7 @@
 set -eux
 
 PYTHONPATH=~/d3d10 python -m collada.main \
-                   path/to/noodle.DAE \
+                   ~/love-demo/scene/noodle/noodle.DAE \
                    data/scenes/noodle/noodle.cpp \
                    data/scenes/noodle/noodle.vtx \
                    data/scenes/noodle/noodle.vjw \
