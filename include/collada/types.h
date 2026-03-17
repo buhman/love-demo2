@@ -260,6 +260,7 @@ namespace collada::types {
   struct skin {
     types::geometry const * const geometry; // source
 
+    matrix const bind_shape_matrix; // one per skin
     matrix const * const inverse_bind_matrices; // one per joint
 
     int const vertex_buffer_offset;

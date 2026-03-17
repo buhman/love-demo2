@@ -450,6 +450,8 @@ namespace collada::scene {
       types::instance_controller const &instance_controller = instance_controllers[i];
       types::skin const &skin = instance_controller.controller->skin;
 
+      XMMATRIX bsm = XMLoadFloat4x4((XMFLOAT4X4*)&skin.bind_shape_matrix);
+
       XMFLOAT4X4 joints[instance_controller.joint_count];
       int joints_size = (sizeof (joints));
       for (int joint_index = 0; joint_index < instance_controller.joint_count; joint_index++) {
@@ -457,7 +459,7 @@ namespace collada::scene {
         int node_index = instance_controller.joint_node_indices[joint_index];
         instance_types::node& node_instance = node_state.node_instances[node_index];
 
-        XMStoreFloat4x4(&joints[joint_index], ibm * node_instance.world);
+        XMStoreFloat4x4(&joints[joint_index], bsm * ibm * node_instance.world);
       }
       glBindBuffer(GL_UNIFORM_BUFFER, joint_uniform_buffer);
       glBufferData(GL_UNIFORM_BUFFER, joints_size, (void *)&joints[0], GL_DYNAMIC_DRAW);
@@ -520,7 +522,7 @@ namespace collada::scene {
 
   void state::update(float t)
   {
-    t = animate::loop(t / 4.0f, 3.333333f);
+    t = animate::loop(t / 4.0f, 1.8333333333333333f);
 
     for (int i = 0; i < descriptor->nodes_count; i++) {
       animate::animate_node(node_state.node_instances[i], t);

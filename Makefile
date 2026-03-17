@@ -43,7 +43,8 @@ OBJS = \
 	src/collada/animate.o \
 	data/scenes/ship20/ship20.o \
 	data/scenes/noodle/noodle.o \
-	data/scenes/shadow_test/shadow_test.o
+	data/scenes/shadow_test/shadow_test.o \
+	data/scenes/book/book.o
 
 all: test.so
 

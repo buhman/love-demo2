@@ -7,27 +7,32 @@
 
 namespace collada::animate {
 
-  static inline int find_frame_ix(types::source const& source, float t)
+  struct frame_ix {
+    int f0;
+    int f1;
+  };
+
+  static inline frame_ix find_frame_ix(types::source const& source, float t)
   {
     for (int i = 0; i < source.count - 1; i++) {
       if (source.float_array[i] <= t && source.float_array[i+1] > t) {
-        return i;
+        return {i, i + 1};
       }
     }
-    return -1;
+    return {source.count - 1, 0};
   }
 
-  static inline float linear_interpolate_iv(types::source const& source, int frame_ix, float t)
+  static inline float linear_interpolate_iv(types::source const& source, frame_ix frame_ix, float t)
   {
-    float prev = source.float_array[(frame_ix+0) * source.stride];
-    float next = source.float_array[(frame_ix+1) * source.stride];
+    float prev = source.float_array[(frame_ix.f0) * source.stride];
+    float next = source.float_array[(frame_ix.f1) * source.stride];
     return (t - prev) / (next - prev);
   }
 
-  static inline float linear_interpolate_value(types::source const& source, int frame_ix, int parameter_ix, float iv)
+  static inline float linear_interpolate_value(types::source const& source, frame_ix frame_ix, int parameter_ix, float iv)
   {
-    float prev = source.float_array[(frame_ix+0) * source.stride + parameter_ix];
-    float next = source.float_array[(frame_ix+1) * source.stride + parameter_ix];
+    float prev = source.float_array[(frame_ix.f0) * source.stride + parameter_ix];
+    float next = source.float_array[(frame_ix.f1) * source.stride + parameter_ix];
     return prev + iv * (next - prev);
   }
 
@@ -88,7 +93,7 @@ namespace collada::animate {
     return (XMFLOAT2 const *)&source.float_array[ix];
   }
 
-  static float bezier_sampler(types::sampler const * const sampler, int frame_ix, int parameter_ix, float t)
+  static float bezier_sampler(types::sampler const * const sampler, frame_ix frame_ix, int parameter_ix, float t)
   {
     /*
       P0 is (INPUT[i] , OUTPUT[i])
@@ -97,15 +102,15 @@ namespace collada::animate {
       P1 is (INPUT[i+1], OUTPUT[i+1])
     */
 
-    float frame0_input = sampler->input.float_array[frame_ix+0];
-    float frame1_input = sampler->input.float_array[frame_ix+1];
+    float frame0_input = sampler->input.float_array[frame_ix.f0];
+    float frame1_input = sampler->input.float_array[frame_ix.f1];
 
-    float frame0_output = sampler->output.float_array[(frame_ix+0) * sampler->output.stride + parameter_ix];
-    float frame1_output = sampler->output.float_array[(frame_ix+1) * sampler->output.stride + parameter_ix];
+    float frame0_output = sampler->output.float_array[(frame_ix.f0) * sampler->output.stride + parameter_ix];
+    float frame1_output = sampler->output.float_array[(frame_ix.f1) * sampler->output.stride + parameter_ix];
 
     XMVECTOR p0 = XMVectorSet(frame0_input, frame0_output, 0, 0);
-    XMVECTOR c0 = XMLoadFloat2(tangent_index(sampler->out_tangent, frame_ix + 0, parameter_ix));
-    XMVECTOR c1 = XMLoadFloat2(tangent_index(sampler->in_tangent, frame_ix + 1, parameter_ix));
+    XMVECTOR c0 = XMLoadFloat2(tangent_index(sampler->out_tangent, frame_ix.f0, parameter_ix));
+    XMVECTOR c1 = XMLoadFloat2(tangent_index(sampler->in_tangent, frame_ix.f1, parameter_ix));
     XMVECTOR p1 = XMVectorSet(frame1_input, frame1_output, 0, 0);
 
     return bezier_binary_search(p0, c0, c1, p1, t);
@@ -153,7 +158,7 @@ namespace collada::animate {
 
   static void animate_channel_segment(types::channel const& channel,
                                       instance_types::transform& transform,
-                                      int frame_ix, float t)
+                                      frame_ix frame_ix, float t)
   {
     enum types::target_attribute const * target_attributes = &channel.target_attribute;
     int target_attributes_count = 1;
@@ -176,7 +181,7 @@ namespace collada::animate {
 
     for (int parameter_ix = 0; parameter_ix < target_attributes_count; parameter_ix++) {
 
-      enum types::interpolation interpolation = channel.source_sampler->interpolation.interpolation_array[frame_ix];
+      enum types::interpolation interpolation = channel.source_sampler->interpolation.interpolation_array[frame_ix.f0];
 
       float value;
       if (interpolation == types::interpolation::BEZIER) {
@@ -196,8 +201,8 @@ namespace collada::animate {
       types::channel const& channel = *node_instance.node->channels[i];
       instance_types::transform& transform = node_instance.transforms[channel.target_transform_index];
 
-      int frame_ix = find_frame_ix(channel.source_sampler->input, t);
-      assert(frame_ix >= 0); // animation is missing a key frame
+      frame_ix frame_ix = find_frame_ix(channel.source_sampler->input, t);
+      //assert(frame_ix >= 0); // animation is missing a key frame
 
       animate_channel_segment(channel, transform, frame_ix, t);
     }

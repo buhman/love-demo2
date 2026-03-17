@@ -29,6 +29,7 @@
 #include "data/scenes/ship20.h"
 #include "data/scenes/noodle.h"
 #include "data/scenes/shadow_test.h"
+#include "data/scenes/book.h"
 
 struct line_location {
   struct {
@@ -309,11 +310,13 @@ void load(const char * source_path)
   //////////////////////////////////////////////////////////////////////
 
   collada::effect::load_effects();
-  scene_state.load_scene(&noodle::descriptor);
-  node_eye = scene_state.find_node_by_name("Camera001");
+  scene_state.load_scene(&book::descriptor);
+  node_eye = scene_state.find_node_by_name("Camera");
   assert(node_eye != nullptr);
-  node_at = scene_state.find_node_by_name("Camera001.Target");
-  assert(node_at != nullptr);
+  //view::state.eye = XMVector3Transform(XMVectorZero(), node_eye->world);
+
+  //node_at = scene_state.find_node_by_name("Camera001.Target");
+  //assert(node_at != nullptr);
 }
 
 void update_keyboard(int up, int down, int left, int right,
@@ -453,8 +456,13 @@ void update(float time)
   current_time = time;
 
   scene_state.update(time);
+  /*
   view::state.eye = XMVector3Transform(XMVectorZero(), node_eye->world);
-  view::state.at = XMVector3Transform(XMVectorZero(), node_at->world);
+  if (node_at == nullptr)
+    view::state.at = XMVectorZero();
+  else
+    view::state.at = XMVector3Transform(XMVectorZero(), node_at->world);
+  */
 
   view::update_transforms();
 }

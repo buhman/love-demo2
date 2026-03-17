@@ -21,3 +21,15 @@ PYTHONPATH=~/d3d10 python -m collada.main \
 
 PYTHONPATH=~/d3d10 python -m collada.main \
                    include/data/scenes/shadow_test.h
+
+# book
+
+PYTHONPATH=~/d3d10 python -m collada.main \
+                   ~/Downloads/book.DAE \
+                   data/scenes/book/book.cpp \
+                   data/scenes/book/book.vtx \
+                   data/scenes/book/book.vjw \
+                   data/scenes/book/book.idx
+
+PYTHONPATH=~/d3d10 python -m collada.main \
+                   include/data/scenes/book.h
