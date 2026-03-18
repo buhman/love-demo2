@@ -38,8 +38,6 @@ namespace lighting {
   static unsigned int program;
   static location location;
 
-  static unsigned int light_uniform_buffer;
-
   void load_program()
   {
     program = compile_from_files("shader/quad.vert",
@@ -63,11 +61,6 @@ namespace lighting {
 
     location.binding.lights = 0;
     glUniformBlockBinding(program, location.uniform.lights, location.binding.lights);
-  }
-
-  void load_light_uniform_buffer()
-  {
-    light_uniform_buffer = load_uniform_buffer("minecraft/global.lights.vtx");
   }
 
   static inline bool near_zero(float a)
@@ -101,7 +94,7 @@ namespace lighting {
     XMStoreFloat3(&eye, view::state.eye);
     glUniform3fv(location.uniform.eye, 1, (float*)&eye);
 
-    glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.lights, light_uniform_buffer);
+    //glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.lights, light_uniform_buffer);
 
     glBindVertexArray(empty_vertex_array_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);

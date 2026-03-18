@@ -17,6 +17,12 @@ CFLAGS += -fno-strict-aliasing
 LDFLAGS += -lm
 LDFLAGS += $(shell pkg-config --libs glfw3)
 
+MINECRAFT_OBJS = \
+	minecraft/love2dworld/inthash.o \
+	src/minecraft.o \
+	src/world/world.o \
+	src/world/entry_table.o
+
 OBJS = \
 	src/gl.o \
 	src/opengl.o \
@@ -25,11 +31,8 @@ OBJS = \
 	src/window.o \
 	src/bresenham.o \
 	src/file.o \
-	src/world.o \
-	src/inthash.o \
 	src/non_block.o \
 	src/view.o \
-	src/minecraft.o \
 	src/hud.o \
 	src/lighting.o \
 	src/collision_scene.o \
@@ -44,7 +47,8 @@ OBJS = \
 	data/scenes/ship20/ship20.o \
 	data/scenes/noodle/noodle.o \
 	data/scenes/shadow_test/shadow_test.o \
-	data/scenes/book/book.o
+	data/scenes/book/book.o \
+	$(MINECRAFT_OBJS)
 
 all: test.so
 

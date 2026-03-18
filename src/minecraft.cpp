@@ -10,6 +10,8 @@
 #include "view.h"
 #include "minecraft.h"
 #include "minecraft_data.inc"
+#include "new.h"
+#include "world/world.h"
 
 namespace minecraft {
   struct location {
@@ -35,21 +37,7 @@ namespace minecraft {
   static unsigned int program;
   static location location;
 
-  struct char_tpl {
-    const char * vtx;
-    const char * cfg;
-  };
-
-  static const int region_count = 4;
-  static const char_tpl vertex_paths[] = {
-    { "minecraft/region.0.0.instance.vtx", "minecraft/region.0.0.instance.cfg" },
-    { "minecraft/region.-1.0.instance.vtx", "minecraft/region.-1.0.instance.cfg" },
-    { "minecraft/region.0.-1.instance.vtx", "minecraft/region.0.-1.instance.cfg" },
-    { "minecraft/region.-1.-1.instance.vtx", "minecraft/region.-1.-1.instance.cfg" },
-  };
-
   static unsigned int vertex_array_object;
-  static unsigned int per_instance_vertex_buffers[region_count];
   static unsigned int per_vertex_buffer;
 
   static const int per_instance_size = 4 + (1 * 4);
@@ -57,22 +45,13 @@ namespace minecraft {
 
   static unsigned int index_buffer;
 
-  // also update index_buffer_custom_offsets in data.inc
-  static const int custom_block_types = 5;
-  static const int instance_cfg_length = 64 + custom_block_types;
-
-  struct instance_cfg {
-    struct region_instance {
-      int instance_count;
-      int offset;
-    } cfg[instance_cfg_length];
-  };
-
-  static instance_cfg instance_cfg[region_count];
-
   static unsigned int texture;
 
   static unsigned int texture_id_uniform_buffer;
+
+  static const int world_count = 1;
+  static world::state world_state[world_count];
+  world::state * current_world;
 
   void load_program()
   {
@@ -143,19 +122,6 @@ namespace minecraft {
     glBindVertexArray(0);
   }
 
-  void load_per_instance_vertex_buffer(int i)
-  {
-    int vertex_buffer_data_size;
-    void * vertex_buffer_data = read_file(vertex_paths[i].vtx, &vertex_buffer_data_size);
-
-    glBindBuffer(GL_ARRAY_BUFFER, per_instance_vertex_buffers[i]);
-    glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
-
-    free(vertex_buffer_data);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-  }
-
   void load_per_vertex_buffer()
   {
     glGenBuffers(1, &per_vertex_buffer);
@@ -186,15 +152,6 @@ namespace minecraft {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
 
-  void load_instance_cfg(int i)
-  {
-    int data_size;
-    void * data = read_file(vertex_paths[i].cfg, &data_size);
-    assert(data_size == (sizeof (struct instance_cfg)));
-
-    memcpy(&instance_cfg[i], data, data_size);
-  }
-
   void load_texture()
   {
     glGenTextures(1, &texture);
@@ -223,6 +180,61 @@ namespace minecraft {
     texture_id_uniform_buffer = load_uniform_buffer("minecraft/block_id_to_texture_id.data");
   }
 
+  //////////////////////////////////////////////////////////////////////
+  // per-world load
+  //////////////////////////////////////////////////////////////////////
+  namespace per_world {
+    static void load_instance_cfg(char const * path, world::instance_cfg_entry * entries)
+    {
+      int data_size;
+      void * data = read_file(path, &data_size);
+      assert(data_size == (sizeof (struct world::instance_cfg_entry)) * world::instance_cfg_length);
+      memcpy(entries, data, data_size);
+    }
+
+    static void load_per_instance_vertex_buffer(char const * path, unsigned int vertex_buffer)
+    {
+      int vertex_buffer_data_size;
+      void * vertex_buffer_data = read_file(path, &vertex_buffer_data_size); // vertex_paths[i].vtx
+
+      glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); //per_instance_vertex_buffers[i]
+      glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
+
+      free(vertex_buffer_data);
+
+      glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    static void load_regions(world::descriptor const * const descriptor, world::region * region)
+    {
+      unsigned int per_instance_vertex_buffers[descriptor->region_count];
+      glGenBuffers(descriptor->region_count, per_instance_vertex_buffers);
+      for (int i = 0; i < descriptor->region_count; i++) {
+        // vtx
+        load_per_instance_vertex_buffer(descriptor->vertex_paths[i].vtx, per_instance_vertex_buffers[i]);
+        region[i].per_instance_vertex_buffer = per_instance_vertex_buffers[i];
+
+        // cfg
+        load_instance_cfg(descriptor->vertex_paths[i].cfg, region[i].instance_cfg);
+      }
+    }
+
+    void load_world(world::descriptor const * const descriptor, world::state & state)
+    {
+      state.descriptor = descriptor;
+      state.region = New<world::region>(descriptor->region_count);
+      load_regions(descriptor, state.region);
+
+      state.light_uniform_buffer = load_uniform_buffer(descriptor->lights_path);
+
+      // collision data
+      world::entry_table::load_entry_table(descriptor->entry_table_path,
+                                           &state.entry_table,
+                                           &state.entry_table_length,
+                                           descriptor->hash_func);
+    }
+  }
+
   void load()
   {
     //////////////////////////////////////////////////////////////////////
@@ -239,13 +251,6 @@ namespace minecraft {
     // per-vertex buffer
     load_per_vertex_buffer();
 
-    // per-instance buffer
-    glGenBuffers(region_count, per_instance_vertex_buffers);
-    for (int i = 0; i < region_count; i++) {
-      load_per_instance_vertex_buffer(i);
-      load_instance_cfg(i);
-    }
-
     // index buffer
     load_index_buffer();
 
@@ -260,6 +265,15 @@ namespace minecraft {
     //////////////////////////////////////////////////////////////////////
 
     load_texture_id_uniform_buffer();
+
+    //////////////////////////////////////////////////////////////////////
+    // worlds
+    //////////////////////////////////////////////////////////////////////
+
+    for (int i = 0; i < world_count; i++) {
+      per_world::load_world(&world::descriptors[i], world_state[i]);
+    }
+    current_world = &world_state[world::world_id::LOVE2DWORLD];
   }
 
   static inline int popcount(int x)
@@ -291,8 +305,8 @@ namespace minecraft {
     glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
-    for (int region_index = 0; region_index < region_count; region_index++) {
-      glBindVertexBuffer(1, per_instance_vertex_buffers[region_index], 0, per_instance_size);
+    for (int region_index = 0; region_index < current_world->descriptor->region_count; region_index++) {
+      glBindVertexBuffer(1, current_world->region[region_index].per_instance_vertex_buffer, 0, per_instance_size);
 
       //////////////////////////////////////////////////////////////////////
       // cube blocks
@@ -301,8 +315,8 @@ namespace minecraft {
         int element_count = 6 * popcount(configuration);
         const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
 
-        int instance_count = instance_cfg[region_index].cfg[configuration].instance_count;
-        int base_instance = instance_cfg[region_index].cfg[configuration].offset / per_instance_size; // index into region.0.0.instance.vtx
+        int instance_count = current_world->region[region_index].instance_cfg[configuration].count;
+        int base_instance = current_world->region[region_index].instance_cfg[configuration].offset / per_instance_size; // index into region.0.0.instance.vtx
 
         if (instance_count == 0)
           continue;
@@ -313,11 +327,11 @@ namespace minecraft {
       //////////////////////////////////////////////////////////////////////
       // custom blocks
       //////////////////////////////////////////////////////////////////////
-      for (int i = 0; i < custom_block_types; i++) {
+      for (int i = 0; i < world::custom_block_types; i++) {
         int element_count = index_buffer_custom_offsets[i].count;
         const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_custom_offsets[i].offset);
-        int instance_count = instance_cfg[region_index].cfg[64 + i].instance_count;
-        int base_instance = instance_cfg[region_index].cfg[64 + i].offset / per_instance_size; // index into region.0.0.instance.vtx
+        int instance_count = current_world->region[region_index].instance_cfg[64 + i].count;
+        int base_instance = current_world->region[region_index].instance_cfg[64 + i].offset / per_instance_size; // index into region.0.0.instance.vtx
         if (instance_count == 0)
           continue;
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices, instance_count, base_instance);

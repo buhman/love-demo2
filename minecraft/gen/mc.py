@@ -101,7 +101,7 @@ def build_level_table(level_table, mem, locations):
     for location in locations:
         try:
             level = mcregion.parse_location(mem, location)
-        except CountZeroException:
+        except mcregion.CountZeroException:
             continue
         x, z = level.x_pos, level.z_pos
         level_table[(x, z)] = level
@@ -209,13 +209,6 @@ def level_table_from_path(level_table, path):
 
     build_level_table(level_table, mem, locations)
 
-all_paths = [
-    "/home/bilbo/Love2DWorld/region/r.0.0.mcr",
-    "/home/bilbo/Love2DWorld/region/r.-1.-1.mcr",
-    "/home/bilbo/Love2DWorld/region/r.0.-1.mcr",
-    "/home/bilbo/Love2DWorld/region/r.-1.0.mcr",
-]
-
 g_stride = 512 * 2
 def from_global_index(i):
     x, y, z = i % g_stride, i // (g_stride * g_stride), (i // g_stride) % g_stride
@@ -256,7 +249,13 @@ def main2(level_table, level_table_keys):
     build_block_instances(blocks)
     print("blocks_length:", len(blocks))
 
-def main(mcr_path, data_path):
+def parse_all_paths(path):
+    with open(path, 'r') as f:
+        buf = f.read()
+    return set(l.strip() for l in buf.split('\n') if l.strip())
+
+def main(mcr_path, data_path, all_paths_path):
+    all_paths = parse_all_paths(all_paths_path)
     assert mcr_path in all_paths
     level_table = {}
     level_table_from_path(level_table, mcr_path)
@@ -273,4 +272,5 @@ def main(mcr_path, data_path):
 
 mcr_path = sys.argv[1]
 data_path = sys.argv[2]
-main(mcr_path, data_path)
+all_paths_path = sys.argv[3]
+main(mcr_path, data_path, all_paths_path)
