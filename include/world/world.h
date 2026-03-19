@@ -25,8 +25,8 @@ namespace world {
     };
   };
 
-  // also update index_buffer_custom_offsets in data.inc
-  const int custom_block_types = 5;
+  // also update index_buffer_custom_offsets in include/minecraft_data.inc
+  const int custom_block_types = 6;
   const int instance_cfg_length = 64 + custom_block_types;
 
   struct instance_cfg_entry {

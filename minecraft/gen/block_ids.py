@@ -77,5 +77,17 @@ def get_texture_id(block_id, block_data):
     decl = by_id_data.get((block_id, block_data), default_decl)
     return decl.linear_texture_index
 
+def get_special(block_id, block_data):
+    decl = by_id_data.get((block_id, block_data), default_decl)
+    if "two_sided" in decl.properties:
+        return -1
+    if "torch_oriented" in decl.properties:
+        return 1
+    if "stair_oriented" in decl.properties:
+        return 2
+    return 0
+
 if __name__ == "__main__":
-    print(sorted_custom_mesh)
+    from pprint import pprint
+    #print(sorted_custom_mesh)
+    pprint(sorted_decls)

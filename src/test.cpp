@@ -377,8 +377,8 @@ int clamp(int n, int high)
   return n;
 }
 
-float mouse_position[3] = {};
-float mouse_block[3] = {};
+float mouse_position[4] = {};
+float mouse_block[4] = {};
 
 void update_mouse(int x, int y)
 {
@@ -392,7 +392,7 @@ void update_mouse(int x, int y)
                geometry_buffer_pnc.height - y,
                1, // width
                1, // height
-               GL_RGB,
+               GL_RGBA,
                GL_FLOAT,
                (void*)&mouse_position);
 
@@ -401,7 +401,7 @@ void update_mouse(int x, int y)
                geometry_buffer_pnc.height - y,
                1, // width
                1, // height
-               GL_RGB,
+               GL_RGBA,
                GL_FLOAT,
                (void*)&mouse_block);
 }

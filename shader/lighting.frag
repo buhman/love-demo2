@@ -38,7 +38,7 @@ void main()
   vec3 light_direction = normalize(Eye.xyz - position.xyz);
   float diffuse = max(dot(normal.xyz, light_direction), 0.0);
 
-  if (normal.w > 1.0)
+  if (normal.w == 1.0) // two-sided
     diffuse = 1.0;
 
   out_color = color.xyz * diffuse;

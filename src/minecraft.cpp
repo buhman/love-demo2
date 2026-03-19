@@ -23,6 +23,7 @@ namespace minecraft {
       unsigned int block_id;
       unsigned int data;
       unsigned int texture_id;
+      unsigned int special;
     } attrib;
     struct {
       unsigned int transform;
@@ -61,15 +62,17 @@ namespace minecraft {
     location.attrib.block_id = glGetAttribLocation(program, "BlockID");
     location.attrib.data = glGetAttribLocation(program, "Data");
     location.attrib.texture_id = glGetAttribLocation(program, "TextureID");
+    location.attrib.special = glGetAttribLocation(program, "Special");
     printf("minecraft program:\n");
-    printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  data %u\n  texture_id %u\n",
+    printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  data %u\n  texture_id %u\n  special %u\n",
            location.attrib.position,
            location.attrib.normal,
            location.attrib.texture,
            location.attrib.block_position,
            location.attrib.block_id,
            location.attrib.data,
-           location.attrib.texture_id);
+           location.attrib.texture_id,
+           location.attrib.special);
 
     location.uniform.transform = glGetUniformLocation(program, "Transform");
     location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
@@ -113,6 +116,10 @@ namespace minecraft {
     glEnableVertexAttribArray(location.attrib.texture_id);
     glVertexAttribIFormat(location.attrib.texture_id, 1, GL_SHORT, 12);
     glVertexAttribBinding(location.attrib.texture_id, 1);
+
+    glEnableVertexAttribArray(location.attrib.special);
+    glVertexAttribIFormat(location.attrib.special, 1, GL_SHORT, 14);
+    glVertexAttribBinding(location.attrib.special, 1);
 
     glBindVertexArray(0);
   }

@@ -36,7 +36,7 @@ namespace hud {
 
   inline static float draw_vector(font::font const& ter_best, char * const buf, float y, char const * const label, XMVECTOR vec)
   {
-    labeled_value<float>(buf, label, ": %5.2f %5.2f %5.2f", XMVectorGetX(vec), XMVectorGetY(vec), XMVectorGetZ(vec));
+    labeled_value<float>(buf, label, ": %5.2f %5.2f %5.2f %5.2f", XMVectorGetX(vec), XMVectorGetY(vec), XMVectorGetZ(vec), XMVectorGetW(vec));
     font::draw_string(ter_best, buf, 10, y);
     y += ter_best.desc->glyph_height;
     return y;
@@ -115,7 +115,7 @@ namespace hud {
 
     font::draw_string(ter_best, "mouse:", 10, y);
     y += ter_best.desc->glyph_height;
-    y = draw_vector(ter_best, buf, y, "  position", XMLoadFloat3((XMFLOAT3*)mouse_position));
-    y = draw_vector(ter_best, buf, y, "     block", XMLoadFloat3((XMFLOAT3*)mouse_block));
+    y = draw_vector(ter_best, buf, y, "  position", XMLoadFloat4((XMFLOAT4*)mouse_position));
+    y = draw_vector(ter_best, buf, y, "     block", XMLoadFloat4((XMFLOAT4*)mouse_block));
   }
 }

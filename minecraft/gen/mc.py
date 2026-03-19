@@ -96,9 +96,11 @@ def build_block_configuration_table():
         yield indices
 
 def pack_instance_data(position, block_id, block_data, texture_id):
+    special = block_ids.get_special(block_id, block_data)
+
     packed = struct.pack("<hhhhhhhh",
                          position[0], position[1], position[2], 0,
-                         block_id, block_data, texture_id, 0)
+                         block_id, block_data, texture_id, special)
     return packed
 
 def pack_light_data(position, block_id):
