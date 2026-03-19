@@ -27,13 +27,13 @@ uniform mat4 Transform;
 vec3 orientation(vec3 position)
 {
   if (Special == 1) { // oriented torch
-    if (Data == 1)
+    if (Data == 1) // "facing east"
       return vec3(position.z, position.y, -position.x);
-    else if (Data == 2)
+    else if (Data == 2) // "facing west"
       return vec3(-position.z, position.y, position.x);
-    else if (Data == 4)
+    else if (Data == 4) // "facing north"
       return vec3(position.x, position.y, -position.z);
-    else
+    else // "facing south"
       return position;
   } else {
     return position;

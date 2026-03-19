@@ -42,7 +42,15 @@ def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
     n_block_data = decode_block_data(level_table, chunk_x, chunk_z, n_block_index)
     return block_ids.is_neighbor_block(n_block_id, n_block_data)
 
-def block_neighbors(level_table, chunk_x, chunk_z, block_index):
+def outside_crop(position, crop):
+    return (
+        position[0] < crop[0][0] or
+        position[2] < crop[0][1] or
+        position[0] > crop[1][0] or
+        position[2] > crop[1][1]
+    )
+
+def block_neighbors(level_table, chunk_x, chunk_z, block_index, crop):
     block_id = level_table[(chunk_x, chunk_z)].blocks[block_index]
     if block_id == data.BlockID.AIR or block_id == data.BlockID.BEDROCK:
         return
@@ -51,6 +59,8 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
 
     xyz = mcregion.xyz_from_block_index(block_index)
     center_position = vec3.add(xyz, (chunk_x * 16, 0, chunk_z * 16))
+    if outside_crop(center_position, crop):
+        return # block is cropped
 
     if not block_ids.is_cube_block(block_id, block_data):
         yield center_position, block_id, block_data, None
@@ -66,10 +76,10 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     if normal_indices:
         yield center_position, block_id, block_data, normal_indices
 
-def devoxelize_region(level_table, level_table_keys):
+def devoxelize_region(level_table, level_table_keys, crop):
     for chunk_x, chunk_z in level_table_keys:
         for block_index in range(128 * 16 * 16):
-            yield from block_neighbors(level_table, chunk_x, chunk_z, block_index)
+            yield from block_neighbors(level_table, chunk_x, chunk_z, block_index, crop)
 
 def build_level_table(level_table, mem, locations):
     for location in locations:
@@ -212,8 +222,9 @@ def dump_blocks(blocks):
             assert(len(buf) == 8)
             f.write(buf)
 
-def main2(level_table, level_table_keys):
-    blocks = devoxelize_region(level_table, level_table_keys)
+def main2(level_table, level_table_keys, crop):
+    print("crop", crop)
+    blocks = devoxelize_region(level_table, level_table_keys, crop)
     blocks = list(blocks)
     dump_blocks(blocks)
     build_block_instances(blocks)
@@ -224,7 +235,15 @@ def parse_all_paths(path):
         buf = f.read()
     return set(l.strip() for l in buf.split('\n') if l.strip())
 
-def main(mcr_path, data_path, all_paths_path):
+def parse_crop(crop):
+    min_xz, max_xz = crop.strip().split(":")
+    min_xz = tuple(int(c) for c in min_xz.split(","))
+    max_xz = tuple(int(c) for c in max_xz.split(","))
+    assert min_xz[0] < max_xz[0], crop
+    assert min_xz[1] < max_xz[1], crop
+    return min_xz, max_xz
+
+def main(mcr_path, data_path, all_paths_path, crop):
     all_paths = parse_all_paths(all_paths_path)
     assert mcr_path in all_paths
     level_table = {}
@@ -234,10 +253,10 @@ def main(mcr_path, data_path, all_paths_path):
         if path == mcr_path:
             continue
         level_table_from_path(level_table, path)
-
-    main2(level_table, level_table_keys)
+    main2(level_table, level_table_keys, parse_crop(crop))
 
 mcr_path = sys.argv[1]
 data_path = sys.argv[2]
 all_paths_path = sys.argv[3]
-main(mcr_path, data_path, all_paths_path)
+crop = sys.argv[4]
+main(mcr_path, data_path, all_paths_path, crop)
