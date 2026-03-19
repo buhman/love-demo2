@@ -40,8 +40,8 @@ void main()
 
   vec4 texture_color = texelFetch(TerrainSampler, coord, 0);
   if (texture_color.w != 1.0) {
-    discard;
-    return;
+    //discard;
+    //return;
   }
 
   Position = fs_in.BlockPosition.xzy;

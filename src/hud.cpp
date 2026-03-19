@@ -81,7 +81,6 @@ namespace hud {
 
     int font_ix = font::best_font(font::terminus, font::terminus_length);
     font::font const& ter_best = terminus_fonts[font_ix];
-
     font::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
 
     labeled_value<float>(buf, "fov: ", "%.3f", view::state.fov);

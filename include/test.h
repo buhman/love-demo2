@@ -6,6 +6,8 @@ extern "C" {
 
   void load(const char * source_path);
   void draw();
+  void love2d_state_load();
+  void love2d_state_restore();
   void update_keyboard(int up, int down, int left, int right,
                        int w, int s, int a, int d,
                        int t, int g, int f, int h,

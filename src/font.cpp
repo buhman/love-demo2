@@ -123,8 +123,8 @@ namespace font {
 
   inline static XMFLOAT4X4 glyph_transform(font const& font, int x, int y)
   {
-    XMMATRIX transform =
-      XMMatrixScaling(font.desc->glyph_width, font.desc->glyph_height, 0)
+    XMMATRIX transform
+      = XMMatrixScaling(font.desc->glyph_width, font.desc->glyph_height, 0)
       * XMMatrixTranslation(x, -y, 0)
       * XMMatrixScaling(2.0f / window::width, 2.0f / window::height, 0)
       * XMMatrixTranslation(-1, 1, 0);
@@ -148,7 +148,7 @@ namespace font {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
   }
 
-  void draw_string(font const& font, char const * const s, int x, int y)
+  int draw_string(font const& font, char const * const s, int x, int y)
   {
     int i = 0;
     while (s[i] != 0) {
@@ -164,5 +164,6 @@ namespace font {
 
       x += font.desc->glyph_width;
     }
+    return x;
   }
 }

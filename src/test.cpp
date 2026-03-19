@@ -24,6 +24,7 @@
 #include "collada/scene.h"
 #include "collada/types.h"
 #include "collada/instance_types.h"
+#include "pixel_line_art.h"
 
 #include "world/entry_table.h"
 #include "world/world.h"
@@ -88,7 +89,6 @@ void load_quad_index_buffer()
   glGenBuffers(1, &quad_index_buffer);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
-
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
@@ -119,6 +119,12 @@ void load(const char * source_path)
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
   gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
 
+  //
+
+  glBindVertexArray(0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
   //////////////////////////////////////////////////////////////////////
   // minecraft (drawing data)
   //////////////////////////////////////////////////////////////////////
@@ -139,6 +145,12 @@ void load(const char * source_path)
 
   terminus_fonts = (font::font *)malloc((sizeof (font::font)) * font::terminus_length);
   font::load_fonts(terminus_fonts, font::terminus, font::terminus_length);
+
+  //////////////////////////////////////////////////////////////////////
+  // pixel_line_art
+  //////////////////////////////////////////////////////////////////////
+
+  pixel_line_art::load();
 
   //////////////////////////////////////////////////////////////////////
   // quad
@@ -370,7 +382,6 @@ float mouse_block[3] = {};
 
 void update_mouse(int x, int y)
 {
-  printf("update mouse %d %d\n", x, y);
   x = clamp(x, geometry_buffer_pnc.width);
   y = clamp(y, geometry_buffer_pnc.height);
 

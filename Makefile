@@ -45,6 +45,8 @@ OBJS = \
 	src/collada/effect.o \
 	src/collada/node_state.o \
 	src/collada/animate.o \
+	src/lua_api.o \
+	src/pixel_line_art.o \
 	data/scenes/ship20/ship20.o \
 	data/scenes/noodle/noodle.o \
 	data/scenes/shadow_test/shadow_test.o \
