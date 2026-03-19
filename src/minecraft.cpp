@@ -22,16 +22,12 @@ namespace minecraft {
       unsigned int block_position;
       unsigned int block_id;
       unsigned int data;
+      unsigned int texture_id;
     } attrib;
     struct {
       unsigned int transform;
       unsigned int terrain_sampler;
-
-      unsigned int texture_id;
     } uniform;
-    struct {
-      unsigned int texture_id;
-    } binding;
   };
 
   static unsigned int program;
@@ -40,16 +36,14 @@ namespace minecraft {
   static unsigned int vertex_array_object;
   static unsigned int per_vertex_buffer;
 
-  static const int per_instance_size = 4 + (1 * 4);
+  static const int per_instance_size = (3 + 1 + 3 + 1) * 2;
   static const int per_vertex_size = (3 + 3 + 2) * 2;
 
   static unsigned int index_buffer;
 
   static unsigned int texture;
 
-  static unsigned int texture_id_uniform_buffer;
-
-  static const int world_count = 1;
+  static const int world_count = 2;
   static world::state world_state[world_count];
   world::state * current_world;
 
@@ -66,25 +60,22 @@ namespace minecraft {
     location.attrib.block_position = glGetAttribLocation(program, "BlockPosition");
     location.attrib.block_id = glGetAttribLocation(program, "BlockID");
     location.attrib.data = glGetAttribLocation(program, "Data");
+    location.attrib.texture_id = glGetAttribLocation(program, "TextureID");
     printf("minecraft program:\n");
-    printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  data %u\n",
+    printf(" attributes:\n  position %u\n  normal %u\n  texture %u\n  block_position %u\n  block_id %u\n  data %u\n  texture_id %u\n",
            location.attrib.position,
            location.attrib.normal,
            location.attrib.texture,
            location.attrib.block_position,
            location.attrib.block_id,
-           location.attrib.data);
+           location.attrib.data,
+           location.attrib.texture_id);
 
     location.uniform.transform = glGetUniformLocation(program, "Transform");
     location.uniform.terrain_sampler = glGetUniformLocation(program, "TerrainSampler");
-    location.uniform.texture_id = glGetUniformBlockIndex(program, "TextureID");
-    printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n  texture_id %u\n",
+    printf(" uniforms:\n  transform %u\n  terrain_sampler %u\n",
            location.uniform.transform,
-           location.uniform.terrain_sampler,
-           location.uniform.texture_id);
-
-    location.binding.texture_id = 0;
-    glUniformBlockBinding(program, location.uniform.texture_id, location.binding.texture_id);
+           location.uniform.terrain_sampler);
   }
 
   void load_vertex_attributes()
@@ -112,12 +103,16 @@ namespace minecraft {
     glVertexAttribBinding(location.attrib.block_position, 1);
 
     glEnableVertexAttribArray(location.attrib.block_id);
-    glVertexAttribFormat(location.attrib.block_id, 1, GL_UNSIGNED_BYTE, GL_FALSE, 6);
+    glVertexAttribIFormat(location.attrib.block_id, 1, GL_SHORT, 8);
     glVertexAttribBinding(location.attrib.block_id, 1);
 
     glEnableVertexAttribArray(location.attrib.data);
-    glVertexAttribFormat(location.attrib.data, 1, GL_UNSIGNED_BYTE, GL_FALSE, 7);
+    glVertexAttribIFormat(location.attrib.data, 1, GL_SHORT, 10);
     glVertexAttribBinding(location.attrib.data, 1);
+
+    glEnableVertexAttribArray(location.attrib.texture_id);
+    glVertexAttribIFormat(location.attrib.texture_id, 1, GL_SHORT, 12);
+    glVertexAttribBinding(location.attrib.texture_id, 1);
 
     glBindVertexArray(0);
   }
@@ -163,21 +158,16 @@ namespace minecraft {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     int texture_data_size;
-    void * texture_data = read_file("minecraft/terrain.data", &texture_data_size);
+    void * texture_data = read_file("minecraft/terrain2.data", &texture_data_size);
     assert(texture_data != NULL);
 
-    int width = 256;
-    int height = 256;
+    int width = 128;
+    int height = 128;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
 
     free(texture_data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  void load_texture_id_uniform_buffer()
-  {
-    texture_id_uniform_buffer = load_uniform_buffer("minecraft/block_id_to_texture_id.data");
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -188,6 +178,7 @@ namespace minecraft {
     {
       int data_size;
       void * data = read_file(path, &data_size);
+      printf("%s %d %d %ld\n", path, data_size, world::instance_cfg_length, (sizeof (struct world::instance_cfg_entry)));
       assert(data_size == (sizeof (struct world::instance_cfg_entry)) * world::instance_cfg_length);
       memcpy(entries, data, data_size);
     }
@@ -261,19 +252,15 @@ namespace minecraft {
     load_texture();
 
     //////////////////////////////////////////////////////////////////////
-    // uniform buffers
-    //////////////////////////////////////////////////////////////////////
-
-    load_texture_id_uniform_buffer();
-
-    //////////////////////////////////////////////////////////////////////
     // worlds
     //////////////////////////////////////////////////////////////////////
 
     for (int i = 0; i < world_count; i++) {
+      if (i == 0)
+        continue;
       per_world::load_world(&world::descriptors[i], world_state[i]);
     }
-    current_world = &world_state[world::world_id::LOVE2DWORLD];
+    current_world = &world_state[world::world_id::GRANDLECTURN];
   }
 
   static inline int popcount(int x)
@@ -294,8 +281,6 @@ namespace minecraft {
 
     glUniformMatrix4fv(location.uniform.transform, 1, false, (float *)&view::state.float_transform);
     glUniform1i(location.uniform.terrain_sampler, 0);
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.texture_id, texture_id_uniform_buffer);
 
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_FRONT);
@@ -327,6 +312,7 @@ namespace minecraft {
       //////////////////////////////////////////////////////////////////////
       // custom blocks
       //////////////////////////////////////////////////////////////////////
+      /*
       for (int i = 0; i < world::custom_block_types; i++) {
         int element_count = index_buffer_custom_offsets[i].count;
         const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_custom_offsets[i].offset);
@@ -336,6 +322,7 @@ namespace minecraft {
           continue;
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices, instance_count, base_instance);
       }
+      */
     }
   }
 }

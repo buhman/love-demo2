@@ -44,10 +44,6 @@ struct line_location {
     unsigned int transform;
   } uniform;
 };
-static unsigned int line_program;
-static line_location line_location;
-static unsigned int line_vertex_array_object;
-static unsigned int line_instance_buffer;
 
 struct quad_location {
   struct {
@@ -71,11 +67,12 @@ float last_frame_time;
 
 font::font * terminus_fonts;
 
-geometry_buffer<3> geometry_buffer_pnc = {};
-static target_type const geometry_buffer_pnc_types[3] = {
+geometry_buffer<4> geometry_buffer_pnc = {};
+static target_type const geometry_buffer_pnc_types[4] = {
   [target_name::POSITION] = { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
   [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
   [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
+  [target_name::BLOCK] = { GL_RGBA16F, GL_COLOR_ATTACHMENT3 },
 };
 
 collada::instance_types::node * node_eye;
@@ -359,41 +356,6 @@ static inline int popcount(int x)
   return __builtin_popcount(x);
 }
 
-/*
-void draw_line()
-{
-  if (line_point_ix == 0)
-    return;
-
-  glUseProgram(line_program);
-
-  glBlendFunc(GL_ONE, GL_ZERO);
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_ALWAYS);
-
-  glUniformMatrix4fv(line_location.uniform.transform, 1, false, (float *)&view::state.float_transform);
-
-  //glEnable(GL_CULL_FACE);
-  //glCullFace(GL_FRONT);
-  //glFrontFace(GL_CCW);
-
-  glBindVertexArray(line_vertex_array_object);
-  glBindVertexBuffer(0, per_vertex_buffer, 0, per_vertex_size);
-  int line_instance_vertex_size = (sizeof (short_point));
-  glBindVertexBuffer(1, line_instance_buffer, 0, line_instance_vertex_size);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-
-  int configuration = 63;
-  int element_count = 6 * popcount(configuration);
-  const void * indices = (void *)((ptrdiff_t)index_buffer_configuration_offsets[configuration]); // index into configuration.idx
-  int instance_count = line_point_ix;
-  int base_instance = 0;
-  if (instance_count - base_instance <= 0)
-    return;
-  glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_BYTE, indices, instance_count - base_instance, base_instance);
-}
-*/
-
 int clamp(int n, int high)
 {
   if (n < 0)
@@ -403,14 +365,18 @@ int clamp(int n, int high)
   return n;
 }
 
+float mouse_position[3] = {};
+float mouse_block[3] = {};
+
 void update_mouse(int x, int y)
 {
+  printf("update mouse %d %d\n", x, y);
+  x = clamp(x, geometry_buffer_pnc.width);
+  y = clamp(y, geometry_buffer_pnc.height);
+
   glBindFramebuffer(GL_READ_FRAMEBUFFER, geometry_buffer_pnc.framebuffer);
   glReadBuffer(geometry_buffer_pnc_types[target_name::POSITION].attachment);
 
-  /*
-  x = clamp(x, geometry_buffer_pnc.width);
-  y = clamp(y, geometry_buffer_pnc.height);
   glReadPixels(x,
                geometry_buffer_pnc.height - y,
                1, // width
@@ -418,7 +384,15 @@ void update_mouse(int x, int y)
                GL_RGB,
                GL_FLOAT,
                (void*)&mouse_position);
-  */
+
+  glReadBuffer(geometry_buffer_pnc_types[target_name::BLOCK].attachment);
+  glReadPixels(x,
+               geometry_buffer_pnc.height - y,
+               1, // width
+               1, // height
+               GL_RGB,
+               GL_FLOAT,
+               (void*)&mouse_block);
 }
 
 void draw()

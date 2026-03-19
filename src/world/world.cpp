@@ -9,6 +9,13 @@ namespace world {
     { "minecraft/love2dworld/region.-1.-1.instance.vtx", "minecraft/love2dworld/region.-1.-1.instance.cfg" },
   };
 
+  static vtx_cfg const grandlecturn_vertex_paths[] = {
+    { "minecraft/grandlecturn/region.0.0.instance.vtx", "minecraft/grandlecturn/region.0.0.instance.cfg" },
+    { "minecraft/grandlecturn/region.-1.0.instance.vtx", "minecraft/grandlecturn/region.-1.0.instance.cfg" },
+    { "minecraft/grandlecturn/region.0.-1.instance.vtx", "minecraft/grandlecturn/region.0.-1.instance.cfg" },
+    { "minecraft/grandlecturn/region.-1.-1.instance.vtx", "minecraft/grandlecturn/region.-1.-1.instance.cfg" },
+  };
+
   descriptor const descriptors[] = {
     [world_id::LOVE2DWORLD] = {
       .region_count = 4,
@@ -16,6 +23,13 @@ namespace world {
       .entry_table_path = "minecraft/love2dworld/global.dump",
       .lights_path = "minecraft/love2dworld/global.lights.vtx",
       .hash_func = love2dworld_hash,
+    },
+    [world_id::GRANDLECTURN] = {
+      .region_count = 4,
+      .vertex_paths = grandlecturn_vertex_paths,
+      .entry_table_path = "minecraft/grandlecturn/global.dump",
+      .lights_path = "minecraft/grandlecturn/global.lights.vtx",
+      .hash_func = grandlecturn_hash,
     },
   };
   int const descriptors_length = (sizeof (descriptors)) / (sizeof (descriptors[0]));

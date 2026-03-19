@@ -21,6 +21,7 @@ namespace world {
   struct world_id {
     enum {
       LOVE2DWORLD = 0,
+      GRANDLECTURN = 1,
     };
   };
 

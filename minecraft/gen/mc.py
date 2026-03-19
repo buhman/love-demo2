@@ -10,8 +10,7 @@ import mcregion
 import vec3
 import vertex_buffer
 import data
-
-FAST = "FAST" in os.environ
+import block_ids
 
 def wrap_n(nc, chunk_c):
     if nc < 0:
@@ -22,35 +21,11 @@ def wrap_n(nc, chunk_c):
         chunk_c = chunk_c + 1
     return nc, chunk_c
 
-# check vertex_buffer.py for model order
-custom_blocks = [
-    { # "tallgrass" model
-        data.BlockID.TALL_GRASS,
-        data.BlockID.MUSHROOM_1,
-        data.BlockID.FLOWER,
-        data.BlockID.ROSE,
-        data.BlockID.SAPLING,
-    },
-    { # "fence" model
-        data.BlockID.FENCE,
-    },
-    { # "torch" model
-        data.BlockID.TORCH,
-    },
-    { # "wheat" model
-        data.BlockID.WHEAT,
-    },
-    { # "custom-mushroom" model
-        data.BlockID.MUSHROOM_2,
-    },
-]
-
-non_solid_blocks = set(chain.from_iterable(custom_blocks))
-
-hack_non_solid_blocks = set([
-    data.BlockID.LADDER,
-    data.BlockID.WIRE,
-])
+def decode_block_data(level_table, chunk_x, chunk_z, block_index):
+    block_data = level_table[(chunk_x, chunk_z)].data[block_index // 2]
+    #block_data = (block_data >> (1 - (block_index % 2)) * 4) & 0xf
+    block_data = (block_data >> (block_index % 2) * 4) & 0xf
+    return block_data
 
 def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
     if ny > 127 or ny < 0:
@@ -64,21 +39,22 @@ def neighbor_exists(level_table, chunk_x, chunk_z, nx, ny, nz):
         return True
     n_block_index = mcregion.block_index_from_xyz(nx, ny, nz)
     n_block_id = level_table[key].blocks[n_block_index]
-
-    has_neighbor = (n_block_id != data.BlockID.AIR) and (n_block_id not in non_solid_blocks) and (n_block_id not in hack_non_solid_blocks)
-    return has_neighbor
+    n_block_data = decode_block_data(level_table, chunk_x, chunk_z, n_block_index)
+    return block_ids.is_neighbor_block(n_block_id, n_block_data)
 
 def block_neighbors(level_table, chunk_x, chunk_z, block_index):
     block_id = level_table[(chunk_x, chunk_z)].blocks[block_index]
     if block_id == data.BlockID.AIR or block_id == data.BlockID.BEDROCK:
         return
 
-    block_data = level_table[(chunk_x, chunk_z)].data[block_index // 2]
-    block_data = (block_data >> (1 - (block_index % 2)) * 4) & 0xf
+    block_data = decode_block_data(level_table, chunk_x, chunk_z, block_index)
 
     xyz = mcregion.xyz_from_block_index(block_index)
-
     center_position = vec3.add(xyz, (chunk_x * 16, 0, chunk_z * 16))
+
+    if not block_ids.is_cube_block(block_id, block_data):
+        yield center_position, block_id, block_data, None
+        return
 
     def find_non_neighbors():
         for i, normal in enumerate(vertex_buffer.normals):
@@ -87,15 +63,13 @@ def block_neighbors(level_table, chunk_x, chunk_z, block_index):
                 yield i
 
     normal_indices = list(find_non_neighbors())
-    if block_id in non_solid_blocks or block_id in hack_non_solid_blocks or normal_indices:
+    if normal_indices:
         yield center_position, block_id, block_data, normal_indices
 
 def devoxelize_region(level_table, level_table_keys):
     for chunk_x, chunk_z in level_table_keys:
         for block_index in range(128 * 16 * 16):
             yield from block_neighbors(level_table, chunk_x, chunk_z, block_index)
-        if FAST:
-            return
 
 def build_level_table(level_table, mem, locations):
     for location in locations:
@@ -121,11 +95,10 @@ def build_block_configuration_table():
                 indices.extend(vertex_buffer.faces_by_normal[vertex_buffer.normals[j]])
         yield indices
 
-def pack_instance_data(position, block_id, block_data):
-    packed = struct.pack("<hhhBB",
-                         position[0], position[1], position[2],
-                         block_id,
-                         block_data)
+def pack_instance_data(position, block_id, block_data, texture_id):
+    packed = struct.pack("<hhhhhhhh",
+                         position[0], position[1], position[2], 0,
+                         block_id, block_data, texture_id, 0)
     return packed
 
 def pack_light_data(position, block_id):
@@ -135,22 +108,16 @@ def pack_light_data(position, block_id):
 def build_block_instances(blocks):
     by_configuration = defaultdict(list)
 
-    deferred_blocks = defaultdict(list)
+    non_cube_blocks = defaultdict(list)
 
     light_sources = []
 
-    def is_deferred_block(position, block_id, block_data):
-        for i, custom_block_types in enumerate(custom_blocks):
-            if block_id in custom_block_types:
-                deferred_blocks[i].append((position, block_id, block_data))
-                return True
-        return False
-
     for position, block_id, block_data, normal_indices in blocks:
-        if block_id == data.BlockID.TORCH:
-            light_sources.append((position, block_id))
-        if is_deferred_block(position, block_id, block_data):
-            assert block_id in non_solid_blocks
+        if block_ids.is_light_source(block_id, block_data):
+            light_sources.append((position, block_id, block_data))
+        if not block_ids.is_cube_block(block_id, block_data):
+            #custom_mesh_index = block_ids.get_custom_mesh_index(block_id, block_data)
+            #non_cube_blocks[custom_mesh_index].append((position, block_id, block_data))
             continue
         configuration = normal_indices_as_block_configuration(normal_indices)
         by_configuration[configuration].append((position, block_id, block_data))
@@ -168,21 +135,22 @@ def build_block_instances(blocks):
             _blocks = by_configuration[configuration]
             configuration_instance_count_offset.append((len(_blocks), offset))
             for position, block_id, block_data in _blocks:
-                assert block_id not in non_solid_blocks, block_id
-                packed = pack_instance_data(position, block_id, block_data)
+                texture_id = block_ids.get_texture_id(block_id, block_data)
+                packed = pack_instance_data(position, block_id, block_data, texture_id)
                 f.write(packed)
                 offset += len(packed)
 
         ######################################################################
         # non-cubes
         ######################################################################
-        for custom_block_ix in range(len(custom_blocks)):
+        for custom_block_ix in range(len(block_ids.sorted_custom_mesh)):
             nc_offset = offset
             nc_instance_count = 0
-            for position, block_id, block_data in deferred_blocks[custom_block_ix]:
-                assert block_id in non_solid_blocks, block_id
-                packed = pack_instance_data(position, block_id, block_data)
+            for position, block_id, block_data in non_cube_blocks[custom_block_ix]:
+                texture_id = block_ids.get_texture_id(block_id, block_data)
+                packed = pack_instance_data(position, block_id, block_data, texture_id)
                 f.write(packed)
+                assert len(packed) == 16
                 offset += len(packed)
                 nc_instance_count += 1
             configuration_instance_count_offset.append((nc_instance_count, nc_offset))
@@ -193,7 +161,7 @@ def build_block_instances(blocks):
             f.write(struct.pack("<ii", instance_count, offset))
 
     with open(f"{data_path}.lights.vtx", "wb") as f:
-        for position, block_id in light_sources:
+        for position, block_id, block_data in light_sources:
             packed = pack_light_data(position, block_id)
             f.write(packed)
 
@@ -266,9 +234,6 @@ def main(mcr_path, data_path, all_paths_path):
         level_table_from_path(level_table, path)
 
     main2(level_table, level_table_keys)
-    #import cProfile
-    #cProfile.runctx("main2(level_table, level_table_keys)", {},
-    #                {"level_table_keys": level_table_keys, "level_table": level_table, "main2": main2})
 
 mcr_path = sys.argv[1]
 data_path = sys.argv[2]

@@ -26,6 +26,7 @@ struct target_name {
     POSITION = 0,
     NORMAL = 1,
     COLOR = 2,
+    BLOCK = 3,
   };
 };
 
@@ -57,9 +58,12 @@ void init_geometry_buffer(geometry_buffer<render_target_count>& geometry_buffer,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, types[i].attachment, GL_TEXTURE_2D, geometry_buffer.target[i], 0);
   }
-  static_assert(render_target_count == 3);
-  GLenum attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-  glDrawBuffers(3, attachments); // bound to GL_DRAW_FRAMEBUFFER
+  static_assert(render_target_count <= 8);
+  static GLenum const attachments[8] = {
+    GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+    GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7,
+  };
+  glDrawBuffers(render_target_count, attachments); // bound to GL_DRAW_FRAMEBUFFER
 
   glGenRenderbuffers(1, &geometry_buffer.renderbuffer);
   glBindRenderbuffer(GL_RENDERBUFFER, geometry_buffer.renderbuffer);

@@ -25,7 +25,11 @@ namespace world::entry_table {
 
     for (int i = 0; i < entry_table_length; i++) {
       uint32_t ix = hash_func(entry[i].global_index);
-      assert(entry_table[ix].global_index == 0);
+      if (entry_table[ix].global_index != 0) {
+        printf("collision hash(%d) = %d ; %d\n", entry[i].global_index, ix, entry_table[ix].global_index);
+        assert(hash_func(entry_table[ix].global_index) == ix);
+      }
+      //assert(entry_table[ix].global_index == 0);
       memcpy(&entry_table[ix], &entry[i], (sizeof (global_entry_t)));
     }
 

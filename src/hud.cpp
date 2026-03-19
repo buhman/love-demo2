@@ -20,6 +20,9 @@ extern float last_frame_time;
 // - load_quad_index_buffer
 // - empty_vertex_array_object
 
+extern float mouse_position[3];
+extern float mouse_block[3];
+
 namespace hud {
 
   template <typename T, typename... Args>
@@ -100,6 +103,7 @@ namespace hud {
     */
 
     y = draw_vector(ter_best, buf, y, "eye", view::state.eye);
+    y = draw_vector(ter_best, buf, y, "at", view::state.at);
     y = draw_vector(ter_best, buf, y, "forward", view::state.forward);
 
     labeled_value<float>(buf, "pitch: ", "%.4f", view::state.pitch);
@@ -109,6 +113,10 @@ namespace hud {
     labeled_value<float>(buf, "frame_rate_avg: ", "%.2f", 1.0f / update_average(current_time - last_frame_time));
     font::draw_string(ter_best, buf, 10, y);
     y += ter_best.desc->glyph_height;
-  }
 
+    font::draw_string(ter_best, "mouse:", 10, y);
+    y += ter_best.desc->glyph_height;
+    y = draw_vector(ter_best, buf, y, "  position", XMLoadFloat3((XMFLOAT3*)mouse_position));
+    y = draw_vector(ter_best, buf, y, "     block", XMLoadFloat3((XMFLOAT3*)mouse_block));
+  }
 }

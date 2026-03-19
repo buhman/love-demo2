@@ -1,0 +1,35 @@
+name,block id,data,linear texture index,custom mesh,properties,,notes
+Grass,2,"0,1",1,,,,"""data"" is ""0 (zero)"" if unspecified"
+Dirt,3,,1,,,,"""custom mesh"" is ""cube"" if unspecified"
+Wooden Planks,5,,4,,,,"""linear texture index"" is invalid if unspecified"
+Trunk,17,,5,,,,"""properties"" is (empty) if unspecified"
+Trunk,17,1,5,,,,
+Birch Block,17,2,6,,,,
+Leaves,18,,12,,,,
+Leaves,18,1,12,,,,
+Leaves,18,2,12,,,,
+Leaves,18,3,12,,,,
+Unused,20,,11,,,,
+Door Bottom,21,,18,,,,
+Door Top,22,,17,,,,
+Tall Grass,31,"0,1",22,tall_grass,,,
+Tan Block 1,35,1,2,,,,
+White Block 2,35,5,6,,,,if you say so
+Arch Bottom,35,6,10,,,,
+Tan Block 2,35,8,3,,,,
+White Block 1,35,9,21,,,,
+Grey Bricks,35,10,8,,,,
+Unused,35,10,,,,,
+Arch Top,35,14,9,,,,
+Grey Bricks 1,35,15,8,,,,
+White Block 3,35,,7,,,,
+Lilac Grass,37,,15,tall_grass,,,
+Spider Plant,38,,13,tall_grass,,,
+Spider Plant,39,,13,tall_grass,,,
+Red Mushroom,40,,14,custom_mushroom,,,
+Start/Finish Line,45,,16,,,,
+Shadow Block,49,,20,,,,
+Wall Torch,50,"1,2,3,4",,wall_torch,emits_light,,
+Candle,50,5,,candle,emits_light,,
+Fence,85,0,4,fence,,,
+Lamp Block,89,,19,,,,
