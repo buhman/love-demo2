@@ -312,7 +312,6 @@ namespace minecraft {
       //////////////////////////////////////////////////////////////////////
       // custom blocks
       //////////////////////////////////////////////////////////////////////
-      /*
       for (int i = 0; i < world::custom_block_types; i++) {
         int element_count = index_buffer_custom_offsets[i].count;
         const void * indices = (void *)(2 * (ptrdiff_t)index_buffer_custom_offsets[i].offset);
@@ -322,7 +321,6 @@ namespace minecraft {
           continue;
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, indices, instance_count, base_instance);
       }
-      */
     }
   }
 }

@@ -215,7 +215,7 @@ function love.run()
          test.update_mouse(x, y)
       end
 
-      nico_draw()
+      --nico_draw()
 
       love.graphics.present()
       love.timer.sleep(0.001)

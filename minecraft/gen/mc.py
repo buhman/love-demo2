@@ -116,8 +116,8 @@ def build_block_instances(blocks):
         if block_ids.is_light_source(block_id, block_data):
             light_sources.append((position, block_id, block_data))
         if not block_ids.is_cube_block(block_id, block_data):
-            #custom_mesh_index = block_ids.get_custom_mesh_index(block_id, block_data)
-            #non_cube_blocks[custom_mesh_index].append((position, block_id, block_data))
+            custom_mesh_index = block_ids.get_custom_mesh_index(block_id, block_data)
+            non_cube_blocks[custom_mesh_index].append((position, block_id, block_data))
             continue
         configuration = normal_indices_as_block_configuration(normal_indices)
         by_configuration[configuration].append((position, block_id, block_data))

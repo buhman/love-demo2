@@ -5,6 +5,8 @@ import obj_state
 import obj_write
 import sys
 
+import block_ids
+
 normals = [
     (-1.0, 0.0, 0.0),
     (0.0, -1.0, 0.0),
@@ -49,11 +51,10 @@ def main():
 
     build_configuration_index_buffers(cube_faces_by_normal, index_buffer)
     # check mc.py `custom_blocks` for model order
-    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "tallgrass.obj")
-    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "fence.obj")
-    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "torch.obj")
-    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "wheat.obj")
-    obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, "custom-mushroom.obj")
+
+    mesh_order = block_ids.sorted_custom_mesh
+    for mesh_name in mesh_order:
+        obj_write.write_obj(vertex_buffer, index_buffer, index_lookup, f"{mesh_name}.obj")
 
     with open("../configuration.idx", "wb") as f:
         obj_write.write_indices(f, "<H", index_buffer)

@@ -11,7 +11,7 @@ in VS_OUT {
 } fs_in;
 
 layout (location = 0) out vec3 Position;
-layout (location = 1) out vec3 Normal;
+layout (location = 1) out vec4 Normal;
 layout (location = 2) out vec3 Color;
 layout (location = 3) out vec3 Block;
 
@@ -40,12 +40,14 @@ void main()
 
   vec4 texture_color = texelFetch(TerrainSampler, coord, 0);
   if (texture_color.w != 1.0) {
-    //discard;
-    //return;
+    discard;
+    return;
   }
 
+  float two_sided = float(fs_in.BlockID == 31 || fs_in.BlockID == 37 || fs_in.BlockID == 38 || fs_in.BlockID == 39);
+
   Position = fs_in.BlockPosition.xzy;
-  Normal = normalize(fs_in.Normal.xzy);
+  Normal = vec4(normalize(fs_in.Normal.xzy), two_sided * 2.0);
   Color = texture_color.xyz;
   Block = vec3(fs_in.BlockID, fs_in.Data, fs_in.TextureID);
 }

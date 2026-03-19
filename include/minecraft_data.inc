@@ -12,9 +12,9 @@ struct {
   short offset;
   short count;
 } index_buffer_custom_offsets[] = {
-  {1152, 12}, // tallgrass.obj
-  {1164, 36}, // fence.obj
-  {1200, 36}, // torch.obj
-  {1236, 24}, // wheat.obj
-  {1260, 1584}, // custom-mushroom.obj
+  {1152, 3180}, // candle.obj
+  {4332, 1584}, // custom_mushroom.obj
+  {5916, 36}, // fence.obj
+  {5952, 12}, // tall_grass.obj
+  {5964, 2082}, // wall_torch.obj
 };
