@@ -28,6 +28,7 @@ namespace lighting {
       unsigned int quadratic;
       unsigned int linear;
       unsigned int eye;
+      unsigned int light_count;
 
       unsigned int lights;
     } uniform;
@@ -38,7 +39,7 @@ namespace lighting {
   static unsigned int program;
   static location location;
 
-  void load_program()
+  static void load_program()
   {
     program = compile_from_files("shader/quad.vert",
                                  NULL,
@@ -50,17 +51,27 @@ namespace lighting {
     location.uniform.quadratic = glGetUniformLocation(program, "Quadratic");
     location.uniform.linear = glGetUniformLocation(program, "Linear");
     location.uniform.eye = glGetUniformLocation(program, "Eye");
+    location.uniform.light_count = glGetUniformLocation(program, "LightCount");
     location.uniform.lights = glGetUniformBlockIndex(program, "Lights");
 
     fprintf(stderr, "lighting program:\n");
-    fprintf(stderr, " uniforms:\n  position_sampler %u  normal_sampler %u  color_sampler %u  lights %u\n",
+    fprintf(stderr, " uniforms:\n  position_sampler %u  normal_sampler %u  color_sampler %u  quadratic %u\n  linear %u\n  eye %u\n  light_count %u\n  lights %u\n",
             location.uniform.position_sampler,
             location.uniform.normal_sampler,
             location.uniform.color_sampler,
+            location.uniform.quadratic,
+            location.uniform.linear,
+            location.uniform.eye,
+            location.uniform.light_count,
             location.uniform.lights);
 
     location.binding.lights = 0;
     glUniformBlockBinding(program, location.uniform.lights, location.binding.lights);
+  }
+
+  void load()
+  {
+    load_program();
   }
 
   static inline bool near_zero(float a)
@@ -68,7 +79,7 @@ namespace lighting {
     return (fabsf(a) < 0.00001f);
   }
 
-  void draw()
+  void draw(unsigned int light_uniform_buffer, int light_count)
   {
     glUseProgram(program);
     glDepthFunc(GL_ALWAYS);
@@ -89,12 +100,12 @@ namespace lighting {
     glUniform1f(location.uniform.quadratic, quadratic);
     glUniform1f(location.uniform.linear, linear);
 
-
     XMFLOAT3 eye;
     XMStoreFloat3(&eye, view::state.eye);
     glUniform3fv(location.uniform.eye, 1, (float*)&eye);
 
-    //glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.lights, light_uniform_buffer);
+    glUniform1i(location.uniform.light_count, light_count);
+    glBindBufferBase(GL_UNIFORM_BUFFER, location.binding.lights, light_uniform_buffer);
 
     glBindVertexArray(empty_vertex_array_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_index_buffer);

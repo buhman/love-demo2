@@ -8,7 +8,7 @@ extern "C" {
                                   const char * geometry_path,
                                   const char * fragment_path);
 
-  unsigned int load_uniform_buffer(char const * const path);
+  unsigned int load_uniform_buffer(char const * const path, int * out_size);
 
   void load_dds_texture_2D(char const * const path);
 

@@ -9,7 +9,6 @@ namespace lighting {
 
   extern light_parameters global;
 
-  void load_program();
-  void load_light_uniform_buffer();
-  void draw();
+  void load();
+  void draw(unsigned int light_uniform_buffer, int light_count);
 }

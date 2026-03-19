@@ -42,8 +42,9 @@ namespace world {
   struct state {
     world::descriptor const * descriptor;
     world::region * region; // malloc region_count
-    unsigned int light_uniform_buffer;
     entry_table::global_entry_t * entry_table;
+    unsigned int light_uniform_buffer;
+    int light_count;
     int entry_table_length;
   };
 

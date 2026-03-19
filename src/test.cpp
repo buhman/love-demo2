@@ -164,7 +164,7 @@ void load(const char * source_path)
   // lighting
   //////////////////////////////////////////////////////////////////////
 
-  lighting::load_program();
+  lighting::load();
 
   //////////////////////////////////////////////////////////////////////
   // non_block
@@ -424,7 +424,9 @@ void draw()
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    lighting::draw();
+
+    lighting::draw(minecraft::current_world->light_uniform_buffer,
+                   minecraft::current_world->light_count);
     //draw_quad();
     hud::draw();
   } else {

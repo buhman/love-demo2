@@ -223,7 +223,9 @@ namespace minecraft {
       state.region = New<world::region>(descriptor->region_count);
       load_regions(descriptor, state.region);
 
-      state.light_uniform_buffer = load_uniform_buffer(descriptor->lights_path);
+      int light_buffer_size;
+      state.light_uniform_buffer = load_uniform_buffer(descriptor->lights_path, &light_buffer_size);
+      state.light_count = light_buffer_size / ((sizeof (float)) * 4);
 
       // collision data
       world::entry_table::load_entry_table(descriptor->entry_table_path,

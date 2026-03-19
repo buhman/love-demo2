@@ -109,7 +109,7 @@ unsigned int compile_from_files(char const * vertex_path,
   return program;
 }
 
-unsigned int load_uniform_buffer(char const * const path)
+unsigned int load_uniform_buffer(char const * const path, int * out_size)
 {
   unsigned int buffer;
   glGenBuffers(1, &buffer);
@@ -123,6 +123,8 @@ unsigned int load_uniform_buffer(char const * const path)
   free(data);
 
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+  *out_size = data_size;
 
   return buffer;
 }
