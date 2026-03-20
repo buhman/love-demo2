@@ -1,5 +1,7 @@
 #pragma once
 
+#include "directxmath/directxmath.h"
+
 namespace view {
   struct view_state {
     // positions

@@ -97,14 +97,14 @@ namespace view {
     state.up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 
     state.fov = 1.5;
-    state.pitch = -0.7;
+    state.pitch = -0.5520;
 
-    state.forward = XMVector3Normalize(XMVectorSet(-0.64, 0.77, 0, 0));
+    state.forward = XMVector3Normalize(XMVectorSet(0.66, -0.75, 0, 0));
     state.normal = get_normal(); // on forward change
     state.direction = get_direction(); // on forward/normal/pitch change
 
     // position
-    state.eye = XMVectorSet(-45.5f, 43.25f, 63.0f, 1);
+    state.eye = XMVectorSet(4.71f, 65.30, 57.92, 1);
     state.at = state.eye + state.direction * at_distance;
     //state.at = XMVectorSet(0, 0, 0, 1);
     //state.eye = XMVectorSet(0, -100, 0, 1);

@@ -41,5 +41,8 @@ void main()
   //vec3 light_direction = normalize(Eye.xyz - position.xyz);
   //float diffuse = max(dot(normal.xyz, light_direction), 0.0);
 
+  if (normal == vec4(0, 0, 0, 0))
+    out_color = color.xyz;
+
   Color = vec4(out_color, 1.0);
 }

@@ -46,7 +46,7 @@ void main()
 
   vs_out.Position = position;
   vs_out.BlockPosition = BlockPosition;
-  vs_out.Normal = Normal;
+  vs_out.Normal = orientation(Normal);
   vs_out.Texture = Texture;
   vs_out.BlockID = BlockID;
   vs_out.Data = Data;

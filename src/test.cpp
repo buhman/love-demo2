@@ -25,6 +25,7 @@
 #include "collada/types.h"
 #include "collada/instance_types.h"
 #include "pixel_line_art.h"
+#include "flame.h"
 
 #include "world/entry_table.h"
 #include "world/world.h"
@@ -195,6 +196,13 @@ void load(const char * source_path)
 
   //node_at = scene_state.find_node_by_name("Camera001.Target");
   //assert(node_at != nullptr);
+
+  //////////////////////////////////////////////////////////////////////
+  // flame
+  //////////////////////////////////////////////////////////////////////
+
+  flame::load_program();
+  flame::load_texture();
 }
 
 void update_keyboard(int up, int down, int left, int right,
@@ -418,12 +426,14 @@ void draw()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     minecraft::draw();
-    //draw_line();
+
     non_block::draw();
+
+    flame::draw(minecraft::current_world->light_uniform_buffer,
+                minecraft::current_world->light_count);
 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 
     lighting::draw(minecraft::current_world->light_uniform_buffer,
                    minecraft::current_world->light_count);

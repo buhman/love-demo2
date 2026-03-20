@@ -113,8 +113,8 @@ def pack_instance_data(position, block_id, block_data, texture_id):
                          block_id, block_data, texture_id, special)
     return packed
 
-def pack_light_data(position, block_id):
-    packed = struct.pack("<ffff", position[0], position[1], position[2], block_id)
+def pack_light_data(position, block_id, block_data):
+    packed = struct.pack("<ffff", position[0], position[1], position[2], block_data)
     return packed
 
 def build_block_instances(blocks):
@@ -174,7 +174,7 @@ def build_block_instances(blocks):
 
     with open(f"{data_path}.lights.vtx", "wb") as f:
         for position, block_id, block_data in light_sources:
-            packed = pack_light_data(position, block_id)
+            packed = pack_light_data(position, block_id, block_data)
             f.write(packed)
 
 def level_table_from_path(level_table, path):

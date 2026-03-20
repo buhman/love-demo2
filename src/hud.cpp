@@ -101,9 +101,9 @@ namespace hud {
     y += ter_best.desc->glyph_height;
     */
 
-    y = draw_vector(ter_best, buf, y, "eye", view::state.eye);
-    y = draw_vector(ter_best, buf, y, "at", view::state.at);
-    y = draw_vector(ter_best, buf, y, "forward", view::state.forward);
+    y = draw_vector(ter_best, buf, y, "eye", XMVectorSetW(view::state.eye, 0));
+    y = draw_vector(ter_best, buf, y, "at", XMVectorSetW(view::state.at, 0));
+    y = draw_vector(ter_best, buf, y, "forward", XMVectorSetW(view::state.forward, 0));
 
     labeled_value<float>(buf, "pitch: ", "%.4f", view::state.pitch);
     font::draw_string(ter_best, buf, 10, y);

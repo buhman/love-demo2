@@ -47,6 +47,7 @@ OBJS = \
 	src/collada/animate.o \
 	src/lua_api.o \
 	src/pixel_line_art.o \
+	src/flame.o \
 	data/scenes/ship20/ship20.o \
 	data/scenes/noodle/noodle.o \
 	data/scenes/shadow_test/shadow_test.o \
