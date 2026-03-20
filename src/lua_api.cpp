@@ -1,24 +1,24 @@
-#include "font.h"
+#include "font/bitmap.h"
 #include "pixel_line_art.h"
 
 #include "lua_api.h"
 
-extern font::font * terminus_fonts;
+extern font::bitmap::font * terminus_fonts;
 extern unsigned int empty_vertex_array_object;
 extern unsigned int quad_index_buffer;
 
 int draw_font_start()
 {
-  int font_ix = font::best_font(font::terminus, font::terminus_length);
-  font::font const& ter_best = terminus_fonts[font_ix];
-  font::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
+  int font_ix = font::bitmap::best_font(font::bitmap::terminus, font::bitmap::terminus_length);
+  font::bitmap::font const& ter_best = terminus_fonts[font_ix];
+  font::bitmap::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
   return font_ix;
 }
 
 int draw_font(int font_ix, char const * text, int x, int y)
 {
-  font::font const& ter_best = terminus_fonts[font_ix];
-  font::draw_string(ter_best, text, x, y);
+  font::bitmap::font const& ter_best = terminus_fonts[font_ix];
+  font::bitmap::draw_string(ter_best, text, x, y);
   return ter_best.desc->glyph_height;
 }
 

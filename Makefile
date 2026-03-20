@@ -28,7 +28,8 @@ OBJS = \
 	src/gl.o \
 	src/opengl.o \
 	src/test.o \
-	src/font.o \
+	src/font/bitmap.o \
+	src/font/outline.o \
 	src/window.o \
 	src/bresenham.o \
 	src/file.o \

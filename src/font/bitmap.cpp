@@ -7,10 +7,10 @@
 #include "opengl.h"
 #include "file.h"
 
-#include "font.h"
+#include "font/bitmap.h"
 #include "window.h"
 
-namespace font {
+namespace font::bitmap {
 
   struct location {
     struct {
@@ -46,7 +46,7 @@ namespace font {
     font_program = program;
   }
 
-  font load_font(font_desc const& desc)
+  static inline font load_font(font_desc const& desc)
   {
     unsigned int texture;
     glGenTextures(1, &texture);

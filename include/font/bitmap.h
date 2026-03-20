@@ -1,6 +1,6 @@
 #pragma once
 
-namespace font {
+namespace font::bitmap {
 
   struct font_desc {
     char const * const path;
@@ -12,35 +12,35 @@ namespace font {
 
   font_desc const terminus[] = {
     {
-      .path = "font/terminus_128x64_6x12.data",
+      .path = "font/bitmap/terminus_128x64_6x12.data",
       .texture_width = 128,
       .texture_height = 64,
       .glyph_width = 6,
       .glyph_height = 12,
     },
     {
-      .path = "font/terminus_128x128_8x16.data",
+      .path = "font/bitmap/terminus_128x128_8x16.data",
       .texture_width = 128,
       .texture_height = 128,
       .glyph_width = 8,
       .glyph_height = 16,
     },
     {
-      .path = "font/terminus_256x128_10x18.data",
+      .path = "font/bitmap/terminus_256x128_10x18.data",
       .texture_width = 256,
       .texture_height = 128,
       .glyph_width = 10,
       .glyph_height = 18,
     },
     {
-      .path = "font/terminus_256x128_12x24.data",
+      .path = "font/bitmap/terminus_256x128_12x24.data",
       .texture_width = 256,
       .texture_height = 128,
       .glyph_width = 12,
       .glyph_height = 24,
     },
     {
-      .path = "font/terminus_256x256_16x32.data",
+      .path = "font/bitmap/terminus_256x256_16x32.data",
       .texture_width = 256,
       .texture_height = 256,
       .glyph_width = 16,
@@ -60,7 +60,6 @@ namespace font {
   };
 
   void load_shader();
-  font load_font(font_desc const& desc);
   void load_fonts(font * const fonts, font_desc const * const descs, int length);
   int best_font(font_desc const * const descs, int length);
   void draw_start(font const& font, unsigned int vertex_array_object, unsigned int index_buffer);

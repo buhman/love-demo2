@@ -7,7 +7,8 @@
 #include "opengl.h"
 #include "directxmath/directxmath.h"
 #include "test.h"
-#include "font.h"
+#include "font/bitmap.h"
+#include "font/outline.h"
 #include "window.h"
 #include "bresenham.h"
 #include "file.h"
@@ -26,6 +27,7 @@
 #include "collada/instance_types.h"
 #include "pixel_line_art.h"
 #include "flame.h"
+#include "new.h"
 
 #include "world/entry_table.h"
 #include "world/world.h"
@@ -67,7 +69,8 @@ unsigned int quad_index_buffer = -1;
 float current_time;
 float last_frame_time;
 
-font::font * terminus_fonts;
+font::bitmap::font * terminus_fonts;
+font::outline::font * uncial_antiqua_fonts;
 
 geometry_buffer<4> geometry_buffer_pnc = {};
 static target_type const geometry_buffer_pnc_types[4] = {
@@ -142,10 +145,13 @@ void load(const char * source_path)
   // font
   //////////////////////////////////////////////////////////////////////
 
-  font::load_shader();
+  font::bitmap::load_shader();
+  terminus_fonts = New<font::bitmap::font>(font::bitmap::terminus_length);
+  font::bitmap::load_fonts(terminus_fonts, font::bitmap::terminus, font::bitmap::terminus_length);
 
-  terminus_fonts = (font::font *)malloc((sizeof (font::font)) * font::terminus_length);
-  font::load_fonts(terminus_fonts, font::terminus, font::terminus_length);
+  font::outline::load_shader();
+  uncial_antiqua_fonts = New<font::outline::font>(font::outline::uncial_antiqua_length);
+  font::outline::load_fonts(uncial_antiqua_fonts, font::outline::uncial_antiqua, font::outline::uncial_antiqua_length);
 
   //////////////////////////////////////////////////////////////////////
   // pixel_line_art
@@ -439,6 +445,11 @@ void draw()
                    minecraft::current_world->light_count);
     //draw_quad();
     hud::draw();
+
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //font::outline::draw_start(uncial_antiqua_fonts[0], empty_vertex_array_object, quad_index_buffer);
+    //font::outline::draw_string(uncial_antiqua_fonts[0], "test", 150, 500);
+
   } else {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
