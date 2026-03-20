@@ -1,0 +1,4 @@
+/home/bilbo/MidnightMeadow/region/r.0.0.mcr
+/home/bilbo/MidnightMeadow/region/r.-1.-1.mcr
+/home/bilbo/MidnightMeadow/region/r.0.-1.mcr
+/home/bilbo/MidnightMeadow/region/r.-1.0.mcr

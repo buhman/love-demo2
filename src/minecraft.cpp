@@ -44,7 +44,7 @@ namespace minecraft {
 
   static unsigned int texture;
 
-  static const int world_count = 2;
+  static const int world_count = 3;
   static world::state world_state[world_count];
   world::state * current_world;
 
@@ -269,7 +269,7 @@ namespace minecraft {
         continue;
       per_world::load_world(&world::descriptors[i], world_state[i]);
     }
-    current_world = &world_state[world::world_id::GRANDLECTURN];
+    current_world = &world_state[world::world_id::MIDNIGHTMEADOW];
   }
 
   static inline int popcount(int x)

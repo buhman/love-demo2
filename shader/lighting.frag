@@ -25,21 +25,25 @@ void main()
   vec4 color = texture(ColorSampler, PixelTexture.xy);
 
   vec3 out_color = color.xyz * 0.1;
-  for (int i = 0; i < LightCount; i++) {
-    vec3 light_position = light[i].xzy + vec3(0, 0, 0.5);
-    float light_distance = length(light_position - position.xyz);
-    vec3 light_direction = normalize(light_position - position.xyz);
+
+  if (false) {
+    for (int i = 0; i < LightCount; i++) {
+      vec3 light_position = light[i].xzy + vec3(0, 0, 0.5);
+      float light_distance = length(light_position - position.xyz);
+      vec3 light_direction = normalize(light_position - position.xyz);
+      float diffuse = max(dot(normal.xyz, light_direction), 0.0);
+      if (normal.w == 1.0) // two-sided
+        diffuse = 1.0;
+
+      //float attenuation = 1.0 / (1.0 + Linear * light_distance + Quadratic * light_distance * light_distance);
+      float attenuation = 1.0 / (1.0 + Quadratic * light_distance * light_distance);
+      out_color += color.xyz * attenuation * diffuse;
+    }
+  } else {
+    vec3 light_direction = normalize(Eye.xyz - position.xyz);
     float diffuse = max(dot(normal.xyz, light_direction), 0.0);
-    if (normal.w == 1.0) // two-sided
-      diffuse = 1.0;
-
-    //float attenuation = 1.0 / (1.0 + Linear * light_distance + Quadratic * light_distance * light_distance);
-    float attenuation = 1.0 / (1.0 + Quadratic * light_distance * light_distance);
-    out_color += color.xyz * attenuation * diffuse;
+    out_color += color.xyz * diffuse;
   }
-
-  //vec3 light_direction = normalize(Eye.xyz - position.xyz);
-  //float diffuse = max(dot(normal.xyz, light_direction), 0.0);
 
   if (normal == vec4(0, 0, 0, 0))
     out_color = color.xyz;

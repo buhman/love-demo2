@@ -22,6 +22,7 @@ namespace world {
     enum {
       LOVE2DWORLD = 0,
       GRANDLECTURN = 1,
+      MIDNIGHTMEADOW = 2,
     };
   };
 

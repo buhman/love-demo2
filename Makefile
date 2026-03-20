@@ -20,6 +20,7 @@ LDFLAGS += $(shell pkg-config --libs glfw3)
 MINECRAFT_OBJS = \
 	minecraft/love2dworld/inthash.o \
 	minecraft/grandlecturn/inthash.o \
+	minecraft/midnightmeadow/inthash.o \
 	src/minecraft.o \
 	src/world/world.o \
 	src/world/entry_table.o
