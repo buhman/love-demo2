@@ -44,7 +44,7 @@ static inline dds_size_levels dds_mip_total_size(uintptr_t data,
   return (dds_size_levels){mip_total_size, mip_levels};
 }
 
-DDS_FILE const * dds_validate(void * data, unsigned int size, void ** out_data, int * out_size)
+DDS_FILE const * dds_validate(void const * data, unsigned int size, void ** out_data, int * out_size)
 {
   DDS_FILE const * const dds = (DDS_FILE const *)data;
   assert(dds->dwMagic == DDS_MAGIC);

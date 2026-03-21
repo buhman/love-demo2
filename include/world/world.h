@@ -20,9 +20,8 @@ namespace world {
 
   struct world_id {
     enum {
-      LOVE2DWORLD = 0,
-      GRANDLECTURN = 1,
-      MIDNIGHTMEADOW = 2,
+      GRANDLECTURN = 0,
+      MIDNIGHTMEADOW = 1,
     };
   };
 

@@ -10,3 +10,5 @@ __pycache__
 minecraft/region*.lights.vtx
 minecraft/region*.dump
 minecraft/gen/map.txt
+test.pack
+pack_main

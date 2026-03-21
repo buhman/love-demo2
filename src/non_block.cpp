@@ -34,12 +34,12 @@ namespace non_block {
     glGenBuffers(1, &index_buffer);
 
     int index_buffer_data_size;
-    void * index_buffer_data = read_file("minecraft/non_block.idx", &index_buffer_data_size);
+    void const * index_buffer_data = file::read_file("minecraft/non_block.idx", &index_buffer_data_size);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_data_size, index_buffer_data, GL_STATIC_DRAW);
 
-    free(index_buffer_data);
+    file::free(index_buffer_data);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
@@ -49,12 +49,12 @@ namespace non_block {
     glGenBuffers(1, &per_vertex_buffer);
 
     int vertex_buffer_data_size;
-    void * vertex_buffer_data = read_file("minecraft/non_block.vtx", &vertex_buffer_data_size);
+    void const * vertex_buffer_data = file::read_file("minecraft/non_block.vtx", &vertex_buffer_data_size);
 
     glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
 
-    free(vertex_buffer_data);
+    file::free(vertex_buffer_data);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }

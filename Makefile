@@ -1,6 +1,9 @@
 #PREFIX = x86_64-w64-mingw32-
 CC=$(PREFIX)gcc
 CXX=$(PREFIX)g++
+OBJCOPY=$(PREFIX)objcopy
+
+OBJARCH = elf64-x86-64
 
 OPT = -O0 -march=x86-64-v3
 
@@ -13,6 +16,9 @@ CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unu
 CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
 CFLAGS += $(shell pkg-config --cflags glfw3)
 CFLAGS += -fno-strict-aliasing
+ifdef READ_PACK_FILE
+CFLAGS += -DREAD_PACK_FILE
+endif
 
 LDFLAGS += -lm
 LDFLAGS += $(shell pkg-config --libs glfw3)
@@ -56,6 +62,10 @@ OBJS = \
 	data/scenes/book/book.o \
 	$(MINECRAFT_OBJS)
 
+ifdef READ_PACK_FILE
+OBJS += test.pack.o
+endif
+
 all: test.so
 
 %.o: %.c
@@ -64,14 +74,23 @@ all: test.so
 %.o: %.cpp
 	$(CXX) $(ARCH) $(CXXSTD) $(CFLAGS) $(OPT) -c $< -o $@
 
+test.pack: pack_main
+	./pack_main $@ $(shell cat filenames.txt)
+
+test.pack.o: test.pack
+	$(OBJCOPY) -I binary -O $(OBJARCH) $< $@
+
 test.so: $(OBJS)
-	$(CC) $(ARCH) $(OPT) -shared -g $^ -o $@ -lSDL3
+	$(CC) $(ARCH) $(OPT) -Wl,-z noexecstack -shared -g $^ -o $@ -lSDL3
 
 main: $(OBJS) src/main.o
 	$(CC) $(ARCH) $(LDFLAGS) $(OPT) -g $^ -o $@
 
 clean:
 	find . -type f ! -name "*.*" -delete
+
+pack_main: src/pack_main.o
+	$(CC) $(ARCH) $(OPT) -g $^ -o $@
 
 .SUFFIXES:
 .INTERMEDIATE:

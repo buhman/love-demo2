@@ -45,7 +45,7 @@ namespace font::outline {
   static inline font load_font(font_desc const& desc)
   {
     int font_data_size;
-    void * font_data = read_file(desc.path, &font_data_size);
+    void const * font_data = file::read_file(desc.path, &font_data_size);
     assert(font_data != nullptr);
 
     types::font * font = (types::font *)font_data;
@@ -71,6 +71,8 @@ namespace font::outline {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, texture_data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // font_data intentionally not free'd
 
     return (outline::font){
       .texture = texture,

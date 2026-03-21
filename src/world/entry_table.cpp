@@ -16,7 +16,7 @@ namespace world::entry_table {
                         hash_func_t * hash_func)
   {
     int global_size;
-    global_entry_t * entry = (global_entry_t *)read_file(path, &global_size);
+    global_entry_t const * entry = (global_entry_t const *)file::read_file(path, &global_size);
     assert(entry != NULL);
     int entry_table_length = global_size / (sizeof (global_entry_t));
 
@@ -33,7 +33,7 @@ namespace world::entry_table {
       memcpy(&entry_table[ix], &entry[i], (sizeof (global_entry_t)));
     }
 
-    free(entry);
+    file::free(entry);
 
     *out_entry_table = entry_table;
     *out_entry_table_length = entry_table_length;

@@ -1,14 +1,10 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace file {
+  extern char const * source_path;
+  extern int source_path_length;
 
-extern char const * g_source_path;
-extern int g_source_path_length;
+  void const * read_file(const char * filename, int * out_size);
 
-void * read_file(const char * filename, int * out_size);
-
-#ifdef __cplusplus
+  void free(void const * buf);
 }
-#endif

@@ -222,14 +222,14 @@ namespace collada::scene {
   static unsigned int load_vertex_buffer(const char * filename)
   {
     int size;
-    void * data = read_file(filename, &size);
+    void const * data = file::read_file(filename, &size);
     assert(data != NULL);
     unsigned int vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
-    free(data);
+    file::free(data);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -239,7 +239,7 @@ namespace collada::scene {
   static unsigned int load_index_buffer(const char * filename)
   {
     int size;
-    void * data = read_file(filename, &size);
+    void const * data = file::read_file(filename, &size);
     assert(data != NULL);
 
     unsigned int index_buffer;
@@ -247,7 +247,7 @@ namespace collada::scene {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
-    free(data);
+    file::free(data);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 

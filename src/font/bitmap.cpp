@@ -58,14 +58,14 @@ namespace font::bitmap {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     int texture_data_size;
-    void * texture_data = read_file(desc.path, &texture_data_size);
+    void const * texture_data = file::read_file(desc.path, &texture_data_size);
     assert(texture_data != nullptr);
 
     int width = desc.texture_width;
     int height = desc.texture_height;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, texture_data);
 
-    free(texture_data);
+    file::free(texture_data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

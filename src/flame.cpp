@@ -62,14 +62,14 @@ namespace flame {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     int texture_data_size;
-    void * texture_data = read_file("minecraft/flame.data", &texture_data_size);
+    void const * texture_data = file::read_file("minecraft/flame.data", &texture_data_size);
     assert(texture_data != nullptr);
 
     int width = 16;
     int height = 80;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
 
-    free(texture_data);
+    file::free(texture_data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

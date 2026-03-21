@@ -116,9 +116,9 @@ extern "C" {
 
 void load(const char * source_path)
 {
-  g_source_path_length = strlen(source_path);
-  assert(source_path[g_source_path_length - 1] != '/');
-  g_source_path = source_path;
+  file::source_path_length = strlen(source_path);
+  assert(source_path[file::source_path_length - 1] != '/');
+  file::source_path = source_path;
 
   fprintf(stderr, "getproc %p\n", SDL_GL_GetProcAddress);
   gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);

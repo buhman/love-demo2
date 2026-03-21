@@ -81,30 +81,30 @@ unsigned int compile_from_files(char const * vertex_path,
                                 char const * fragment_path)
 {
   int vertex_source_size = 0;
-  void * vertex_source = NULL;
+  void const * vertex_source = NULL;
   int geometry_source_size = 0;
-  void * geometry_source = NULL;
+  void const * geometry_source = NULL;
   int fragment_source_size = 0;
-  void * fragment_source = NULL;
+  void const * fragment_source = NULL;
 
-  vertex_source = read_file(vertex_path, &vertex_source_size);
+  vertex_source = file::read_file(vertex_path, &vertex_source_size);
   assert(vertex_source != NULL);
 
   if (geometry_path != NULL) {
-    geometry_source = read_file(geometry_path, &geometry_source_size);
+    geometry_source = file::read_file(geometry_path, &geometry_source_size);
     assert(geometry_source != NULL);
   }
 
-  fragment_source = read_file(fragment_path, &fragment_source_size);
+  fragment_source = file::read_file(fragment_path, &fragment_source_size);
   assert(fragment_source != NULL);
 
   unsigned int program = compile((char const *)vertex_source, vertex_source_size,
                                  (char const *)geometry_source, geometry_source_size,
                                  (char const *)fragment_source, fragment_source_size);
 
-  free(vertex_source);
-  free(geometry_source);
-  free(fragment_source);
+  file::free(vertex_source);
+  file::free(geometry_source);
+  file::free(fragment_source);
 
   return program;
 }
@@ -116,11 +116,11 @@ unsigned int load_uniform_buffer(char const * const path, int * out_size)
   glBindBuffer(GL_UNIFORM_BUFFER, buffer);
 
   int data_size;
-  void * data = read_file(path, &data_size);
+  void const * data = file::read_file(path, &data_size);
   assert(data != NULL);
 
   glBufferData(GL_UNIFORM_BUFFER, data_size, data, GL_STATIC_DRAW);
-  free(data);
+  file::free(data);
 
   glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -134,7 +134,7 @@ void load_dds_texture_2D(char const * const path)
   fprintf(stderr, "load DDS texture: %s\n", path);
 
   int size;
-  void * data = read_file(path, &size);
+  void const * data = file::read_file(path, &size);
   assert(data != NULL);
 
   void * image_data;
@@ -150,5 +150,5 @@ void load_dds_texture_2D(char const * const path)
                          image_size,
                          image_data);
 
-  free(data);
+  file::free(data);
 }

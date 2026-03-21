@@ -44,8 +44,8 @@ namespace minecraft {
 
   static unsigned int texture;
 
-  static const int world_count = 3;
-  static world::state world_state[world_count];
+  static const int max_world_count = 10;
+  static world::state world_state[max_world_count];
   world::state * current_world;
 
   void load_program()
@@ -129,12 +129,12 @@ namespace minecraft {
     glGenBuffers(1, &per_vertex_buffer);
 
     int vertex_buffer_data_size;
-    void * vertex_buffer_data = read_file("minecraft/per_vertex.vtx", &vertex_buffer_data_size);
+    void const * vertex_buffer_data = file::read_file("minecraft/per_vertex.vtx", &vertex_buffer_data_size);
 
     glBindBuffer(GL_ARRAY_BUFFER, per_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
 
-    free(vertex_buffer_data);
+    file::free(vertex_buffer_data);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
@@ -144,12 +144,12 @@ namespace minecraft {
     glGenBuffers(1, &index_buffer);
 
     int index_buffer_data_size;
-    void * index_buffer_data = read_file("minecraft/configuration.idx", &index_buffer_data_size);
+    void const * index_buffer_data = file::read_file("minecraft/configuration.idx", &index_buffer_data_size);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_data_size, index_buffer_data, GL_STATIC_DRAW);
 
-    free(index_buffer_data);
+    file::free(index_buffer_data);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
@@ -165,14 +165,14 @@ namespace minecraft {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     int texture_data_size;
-    void * texture_data = read_file("minecraft/terrain2.data", &texture_data_size);
+    void const * texture_data = file::read_file("minecraft/terrain2.data", &texture_data_size);
     assert(texture_data != NULL);
 
     int width = 128;
     int height = 128;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
 
-    free(texture_data);
+    file::free(texture_data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
   }
@@ -184,21 +184,21 @@ namespace minecraft {
     static void load_instance_cfg(char const * path, world::instance_cfg_entry * entries)
     {
       int data_size;
-      void * data = read_file(path, &data_size);
-      printf("%s %d %d %ld\n", path, data_size, world::instance_cfg_length, (sizeof (struct world::instance_cfg_entry)));
+      void const * data = file::read_file(path, &data_size);
       assert(data_size == (sizeof (struct world::instance_cfg_entry)) * world::instance_cfg_length);
       memcpy(entries, data, data_size);
+      file::free(data);
     }
 
     static void load_per_instance_vertex_buffer(char const * path, unsigned int vertex_buffer)
     {
       int vertex_buffer_data_size;
-      void * vertex_buffer_data = read_file(path, &vertex_buffer_data_size); // vertex_paths[i].vtx
+      void const * vertex_buffer_data = file::read_file(path, &vertex_buffer_data_size); // vertex_paths[i].vtx
 
       glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer); //per_instance_vertex_buffers[i]
       glBufferData(GL_ARRAY_BUFFER, vertex_buffer_data_size, vertex_buffer_data, GL_STATIC_DRAW);
 
-      free(vertex_buffer_data);
+      file::free(vertex_buffer_data);
 
       glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
@@ -264,9 +264,8 @@ namespace minecraft {
     // worlds
     //////////////////////////////////////////////////////////////////////
 
-    for (int i = 0; i < world_count; i++) {
-      if (i == 0)
-        continue;
+    assert(max_world_count > world::descriptors_length);
+    for (int i = 0; i < world::descriptors_length; i++) {
       per_world::load_world(&world::descriptors[i], world_state[i]);
     }
     current_world = &world_state[world::world_id::MIDNIGHTMEADOW];
