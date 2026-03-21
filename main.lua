@@ -34,7 +34,25 @@ void update(float time);
                  int x3, int y3, int x4, int y4);
 ]]
    local source_path = love.filesystem.getSource()
-   test = ffi.load(source_path .. "/test.so")
+   local is_zip = source_path:sub(-#".zip") == ".zip"
+   local is_love = source_path:sub(-#".love") == ".love"
+
+   if is_zip or is_love then
+      if love.filesystem.isFused() then
+         local archive = love.filesystem.getSourceBaseDirectory()
+      end
+
+      local contents, size = love.filesystem.read("data", "test.so")
+      assert(contents ~= nil, size)
+      local write_success, message = love.filesystem.write("test.so", contents, size)
+      local app_data = love.filesystem.getAppdataDirectory()
+
+      -- the love2d "filesystem" API is the worst possible design in the
+      -- entire history of computing
+      test = ffi.load(app_data .. "/love/love-demo2/test.so")
+   else
+      test = ffi.load("./test.so")
+   end
    test.load(source_path)
 end
 
