@@ -10,7 +10,7 @@ namespace font::outline::types {
     int32_t horiBearingX;
     int32_t horiBearingY;
     int32_t horiAdvance;
-  } __attribute__ ((packed));
+  };
 
   static_assert((sizeof (struct glyph_metrics)) == ((sizeof (int32_t)) * 3));
 
@@ -19,14 +19,14 @@ namespace font::outline::types {
     uint16_t y;
     uint16_t width;
     uint16_t height;
-  } __attribute__ ((packed));
+  };
 
   static_assert((sizeof (struct glyph_bitmap)) == ((sizeof (uint16_t)) * 4));
 
   struct glyph {
     struct glyph_bitmap bitmap;
     struct glyph_metrics metrics;
-  } __attribute__ ((packed));
+  };
 
   static_assert((sizeof (struct glyph)) == ((sizeof (struct glyph_bitmap)) + (sizeof (struct glyph_metrics))));
 
@@ -42,7 +42,7 @@ namespace font::outline::types {
     uint16_t texture_width;
     uint16_t texture_height;
     uint32_t max_z_curve_ix;
-  } __attribute__ ((packed));
+  };
 
   static_assert((sizeof (struct font)) == ((sizeof (uint32_t)) * 7));
 

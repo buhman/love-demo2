@@ -1,5 +1,7 @@
 #pragma once
 
+#include "declarations.h"
+
 namespace window {
   extern float width;
   extern float height;
@@ -8,7 +10,7 @@ namespace window {
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void update_window(int width, int height);
+  EXPORT void DECL update_window(int width, int height);
 #ifdef __cplusplus
 }
 #endif

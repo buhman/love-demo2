@@ -28,6 +28,8 @@
 #include "pixel_line_art.h"
 #include "flame.h"
 #include "new.h"
+#include "popcount.h"
+#include "declarations.h"
 
 #include "world/entry_table.h"
 #include "world/world.h"
@@ -74,10 +76,14 @@ font::outline::font * uncial_antiqua_fonts;
 
 geometry_buffer<4> geometry_buffer_pnc = {};
 static target_type const geometry_buffer_pnc_types[4] = {
-  [target_name::POSITION] = { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
-  [target_name::NORMAL] = { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
-  [target_name::COLOR] = { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
-  [target_name::BLOCK] = { GL_RGBA16F, GL_COLOR_ATTACHMENT3 },
+  //[target_name::POSITION] =
+  { GL_RGBA16F, GL_COLOR_ATTACHMENT0 },
+  //[target_name::NORMAL] =
+  { GL_RGBA16F, GL_COLOR_ATTACHMENT1 },
+  //[target_name::COLOR] =
+  { GL_RGBA8, GL_COLOR_ATTACHMENT2 },
+  //[target_name::BLOCK] =
+  { GL_RGBA16F, GL_COLOR_ATTACHMENT3 },
 };
 
 collada::instance_types::node * node_eye;
@@ -110,9 +116,7 @@ void load_quad_program()
   quad_program = program;
 }
 
-extern "C" {
-  void * SDL_GL_GetProcAddress(const char *proc);
-}
+extern "C" void * DECL SDL_GL_GetProcAddress(const char *proc);
 
 void load(const char * source_path)
 {
@@ -194,10 +198,10 @@ void load(const char * source_path)
   // collada
   //////////////////////////////////////////////////////////////////////
 
-  collada::effect::load_effects();
-  scene_state.load_scene(&book::descriptor);
-  node_eye = scene_state.find_node_by_name("Camera");
-  assert(node_eye != nullptr);
+  //collada::effect::load_effects();
+  //scene_state.load_scene(&book::descriptor);
+  //node_eye = scene_state.find_node_by_name("Camera");
+  //assert(node_eye != nullptr);
   //view::state.eye = XMVector3Transform(XMVectorZero(), node_eye->world);
 
   //node_at = scene_state.find_node_by_name("Camera001.Target");
@@ -349,7 +353,7 @@ void update(float time)
 {
   current_time = time;
 
-  scene_state.update(time);
+  //scene_state.update(time);
   /*
   view::state.eye = XMVector3Transform(XMVectorZero(), node_eye->world);
   if (node_at == nullptr)

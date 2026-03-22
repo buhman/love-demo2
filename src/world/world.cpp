@@ -17,14 +17,16 @@ namespace world {
   };
 
   descriptor const descriptors[] = {
-    [world_id::GRANDLECTURN] = {
+    //[world_id::GRANDLECTURN] =
+    {
       .region_count = 4,
       .vertex_paths = grandlecturn_vertex_paths,
       .entry_table_path = "minecraft/grandlecturn/global.dump",
       .lights_path = "minecraft/grandlecturn/global.lights.vtx",
       .hash_func = grandlecturn_hash,
     },
-    [world_id::MIDNIGHTMEADOW] = {
+    //[world_id::MIDNIGHTMEADOW] =
+    {
       .region_count = 4,
       .vertex_paths = midnightmeadow_vertex_paths,
       .entry_table_path = "minecraft/midnightmeadow/global.dump",

@@ -69,7 +69,7 @@ namespace font::bitmap {
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    return (font){
+    return {
       .desc = &desc,
       .texture = texture,
       .stride = desc.texture_width / desc.glyph_width,

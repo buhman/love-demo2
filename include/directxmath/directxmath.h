@@ -9,8 +9,10 @@
 
 #pragma once
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 
 #ifndef __cplusplus
 #error DirectX Math requires C++
@@ -2218,4 +2220,6 @@ namespace DirectX
 
 using namespace DirectX;
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif

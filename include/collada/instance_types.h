@@ -6,13 +6,13 @@
 
 namespace collada::instance_types {
 
-  struct __attribute__((aligned(16))) lookat {
+  struct XM_ALIGNED_DATA(16) lookat {
     XMVECTOR eye;
     XMVECTOR at;
     XMVECTOR up;
   };
 
-  struct __attribute__((aligned(16))) transform {
+  struct XM_ALIGNED_DATA(16) transform {
     union {
       instance_types::lookat lookat;
       XMMATRIX matrix;

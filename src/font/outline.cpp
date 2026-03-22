@@ -74,7 +74,7 @@ namespace font::outline {
 
     // font_data intentionally not free'd
 
-    return (outline::font){
+    return {
       .texture = texture,
       .font = font,
       .glyphs = glyphs,

@@ -446,14 +446,16 @@ namespace collada::scene {
   void state::draw_instance_controllers(types::instance_controller const * const instance_controllers,
                                         int const instance_controllers_count)
   {
+    static int const max_joints = 64;
+    static XMFLOAT4X4 joints[max_joints];
+
     for (int i = 0; i < instance_controllers_count; i++) {
       types::instance_controller const &instance_controller = instance_controllers[i];
       types::skin const &skin = instance_controller.controller->skin;
 
       XMMATRIX bsm = XMLoadFloat4x4((XMFLOAT4X4*)&skin.bind_shape_matrix);
 
-      XMFLOAT4X4 joints[instance_controller.joint_count];
-      int joints_size = (sizeof (joints));
+      assert(instance_controller.joint_count < max_joints);
       for (int joint_index = 0; joint_index < instance_controller.joint_count; joint_index++) {
         XMMATRIX ibm = XMLoadFloat4x4((XMFLOAT4X4*)&skin.inverse_bind_matrices[joint_index]);
         int node_index = instance_controller.joint_node_indices[joint_index];
@@ -461,6 +463,7 @@ namespace collada::scene {
 
         XMStoreFloat4x4(&joints[joint_index], bsm * ibm * node_instance.world);
       }
+      int joints_size = (sizeof (XMFLOAT4X4)) * instance_controller.joint_count;
       glBindBuffer(GL_UNIFORM_BUFFER, joint_uniform_buffer);
       glBufferData(GL_UNIFORM_BUFFER, joints_size, (void *)&joints[0], GL_DYNAMIC_DRAW);
       glBindBuffer(GL_UNIFORM_BUFFER, 0);

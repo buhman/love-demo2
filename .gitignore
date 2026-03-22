@@ -1,3 +1,9 @@
+*.dll
+*.exp
+*.lib
+*.pdb
+*.idb
+*.def
 .~*
 .\#*
 \#*

@@ -1,0 +1,19 @@
+/O2
+/GL
+/D "WIN32"
+/D "NDEBUG"
+/D "_WINDOWS"
+/D "_UNICODE"
+/D "UNICODE"
+/D "_WIN32_WINNT=0x0501"
+/I ".\include"
+/I "..\SDL\include"
+/FD
+/EHsc
+/MT
+/W3
+/c
+/Zi
+/nologo
+/errorReport:prompt
+/std:c++20

@@ -1,0 +1,71 @@
+#PREFIX = x86_64-w64-mingw32-
+CC=$(PREFIX)gcc
+CXX=$(PREFIX)g++
+OBJCOPY=$(PREFIX)objcopy
+
+OBJARCH = elf64-x86-64
+
+OPT = -O0 -march=x86-64-v3
+
+CSTD = -std=gnu23
+CXXSTD = -std=gnu++23
+CFLAGS += -g
+CFLAGS += -fpic
+CFLAGS += -I./include
+CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unused-but-set-variable
+CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
+CFLAGS += -fno-strict-aliasing
+CFLAGS += -no-pthread
+ifdef READ_PACK_FILE
+CFLAGS += -DREAD_PACK_FILE
+endif
+
+LDFLAGS += -lm
+
+MINECRAFT_OBJS = \
+	minecraft/love2dworld/inthash.o \
+	minecraft/grandlecturn/inthash.o \
+	minecraft/midnightmeadow/inthash.o \
+	src/minecraft.o \
+	src/world/world.o \
+	src/world/entry_table.o
+
+OBJS = \
+	src/gl.o \
+	src/opengl.o \
+	src/test.o \
+	src/font/bitmap.o \
+	src/font/outline.o \
+	src/window.o \
+	src/bresenham.o \
+	src/file.o \
+	src/non_block.o \
+	src/view.o \
+	src/hud.o \
+	src/lighting.o \
+	src/collision_scene.o \
+	src/line_art.o \
+	src/boids.o \
+	src/boids_scene.o \
+	src/dds_validate.o \
+	src/collada/scene.o \
+	src/collada/effect.o \
+	src/collada/node_state.o \
+	src/collada/animate.o \
+	src/lua_api.o \
+	src/pixel_line_art.o \
+	src/flame.o \
+	$(MINECRAFT_OBJS)
+
+%.o: %.c
+	cl.exe /Fo"$@" @"compile_debug.rsp" $<
+
+%.o: %.cpp
+	cl.exe /Fo"$@" @"compile_debug.rsp" $<
+
+
+#link.exe /OUT:"$@" @"link_release.rsp" $(OBJS) /NOLOGO /ERRORREPORT:PROMPT
+test.dll: $(OBJS)
+	cl.exe /DEBUG /D_USRDLL /D_WINDLL $(OBJS) /link /DLL /OUT:$@ /LIBPATH:../SDL/Debug SDL3.lib /PDB:"test.pdb"
+
+all: $(OBJS)

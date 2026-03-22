@@ -11,6 +11,7 @@
 #include "minecraft.h"
 #include "minecraft_data.inc"
 #include "new.h"
+#include "popcount.h"
 #include "world/world.h"
 
 namespace minecraft {
@@ -205,7 +206,10 @@ namespace minecraft {
 
     static void load_regions(world::descriptor const * const descriptor, world::region * region)
     {
-      unsigned int per_instance_vertex_buffers[descriptor->region_count];
+      static int const max_region_count = 128;
+      static unsigned int per_instance_vertex_buffers[max_region_count];
+
+      assert(descriptor->region_count < max_region_count);
       glGenBuffers(descriptor->region_count, per_instance_vertex_buffers);
       for (int i = 0; i < descriptor->region_count; i++) {
         // vtx

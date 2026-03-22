@@ -26,7 +26,7 @@ namespace boids {
     forces.separation.force = XMVectorZero();
   }
 
-  inline constexpr bool vector_equal(XMVECTOR V1, XMVECTOR V2)
+  static inline bool vector_equal(XMVECTOR V1, XMVECTOR V2)
   {
     uint32_t CR;
     XMVectorEqualR(&CR, V1, V2);

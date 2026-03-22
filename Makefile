@@ -14,14 +14,12 @@ CFLAGS += -fpic
 CFLAGS += -I./include
 CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unused-but-set-variable
 CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
-CFLAGS += $(shell pkg-config --cflags glfw3)
 CFLAGS += -fno-strict-aliasing
 ifdef READ_PACK_FILE
 CFLAGS += -DREAD_PACK_FILE
 endif
 
 LDFLAGS += -lm
-LDFLAGS += $(shell pkg-config --libs glfw3)
 
 MINECRAFT_OBJS = \
 	minecraft/love2dworld/inthash.o \
@@ -82,6 +80,9 @@ test.pack.o: test.pack
 
 test.so: $(OBJS)
 	$(CC) $(ARCH) $(OPT) -Wl,-z noexecstack -shared -g $^ -o $@ -lSDL3
+
+test.dll: $(OBJS)
+	$(CXX) $(ARCH) $(OPT) -mthreads -static -mdll -static-libstdc++ -static-libgcc -g $^ -o $@ -L. -lSDL3 $(WINDOWS)
 
 main: $(OBJS) src/main.o
 	$(CC) $(ARCH) $(LDFLAGS) $(OPT) -g $^ -o $@

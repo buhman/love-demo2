@@ -11,7 +11,7 @@
 
 extern unsigned int empty_vertex_array_object;
 extern unsigned int quad_index_buffer;
-extern geometry_buffer<3> geometry_buffer_pnc;
+extern geometry_buffer<4> geometry_buffer_pnc;
 
 namespace lighting {
 

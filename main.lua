@@ -37,6 +37,8 @@ void update(float time);
    local is_zip = source_path:sub(-#".zip") == ".zip"
    local is_love = source_path:sub(-#".love") == ".love"
 
+   local platform = love.system.getOS()
+
    if is_zip or is_love then
       if love.filesystem.isFused() then
          local archive = love.filesystem.getSourceBaseDirectory()
@@ -49,9 +51,21 @@ void update(float time);
 
       -- the love2d "filesystem" API is the worst possible design in the
       -- entire history of computing
-      test = ffi.load(app_data .. "/love/love-demo2/test.so")
+      if platform == "Linux" then
+         test = ffi.load(app_data .. "/love/love-demo2/test.so")
+      elseif platform == "Windows" then
+         test = ffi.load(app_data .. "/love/love-demo2/test.dll")
+      else
+         assert(false, "unsupported platform: " .. platform)
+      end
    else
-      test = ffi.load("./test.so")
+      if platform == "Linux" then
+        test = ffi.load("./test.so")
+      elseif platform == "Windows" then
+        test = ffi.load("./test.dll")
+      else
+        assert(false, "unsupported platform: " .. platform)
+      end
    end
    test.load(source_path)
 end

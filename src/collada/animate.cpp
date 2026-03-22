@@ -121,7 +121,7 @@ namespace collada::animate {
                                      float value)
   {
     switch (transform.type) {
-    case types::transform_type::TRANSLATE: __attribute__((fallthrough));
+    case types::transform_type::TRANSLATE: [[fallthrough]];
     case types::transform_type::SCALE:
       switch (channel_target_attribute) {
       case types::target_attribute::X: transform.vector = XMVectorSetX(transform.vector, value); return;
@@ -164,7 +164,7 @@ namespace collada::animate {
     int target_attributes_count = 1;
     if (channel.target_attribute == types::target_attribute::ALL) {
       switch (transform.type) {
-      case types::transform_type::TRANSLATE: __attribute__((fallthrough));
+      case types::transform_type::TRANSLATE: [[fallthrough]];
       case types::transform_type::SCALE:
         target_attributes = translate_scale_target_attributes;
         target_attributes_count = 3;
