@@ -4,6 +4,10 @@
 *.pdb
 *.idb
 *.def
+*.exe
+*.zip
+*.love
+dist/
 .~*
 .\#*
 \#*

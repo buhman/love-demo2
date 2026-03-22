@@ -39,33 +39,33 @@ void update(float time);
 
    local platform = love.system.getOS()
 
+   local lib_name
+   local love_name
+   if platform == "Linux" then
+      lib_name = "test.so"
+      love_name = "love"
+   elseif platform == "Windows" then
+      lib_name = "test.dll"
+      love_name = "LOVE"
+   else
+      assert(false, "unsupported platform " .. platform)
+   end
+
    if is_zip or is_love then
       if love.filesystem.isFused() then
          local archive = love.filesystem.getSourceBaseDirectory()
       end
 
-      local contents, size = love.filesystem.read("data", "test.so")
+      local contents, size = love.filesystem.read("data", lib_name)
       assert(contents ~= nil, size)
-      local write_success, message = love.filesystem.write("test.so", contents, size)
+      local write_success, message = love.filesystem.write(lib_name, contents, size)
+      assert(write_success, lib_name, message)
       local app_data = love.filesystem.getAppdataDirectory()
-
       -- the love2d "filesystem" API is the worst possible design in the
       -- entire history of computing
-      if platform == "Linux" then
-         test = ffi.load(app_data .. "/love/love-demo2/test.so")
-      elseif platform == "Windows" then
-         test = ffi.load(app_data .. "/love/love-demo2/test.dll")
-      else
-         assert(false, "unsupported platform: " .. platform)
-      end
+      test = ffi.load(app_data .. "/" .. love_name .. "/love-demo2/" .. lib_name)
    else
-      if platform == "Linux" then
-        test = ffi.load("./test.so")
-      elseif platform == "Windows" then
-        test = ffi.load("./test.dll")
-      else
-        assert(false, "unsupported platform: " .. platform)
-      end
+      test = ffi.load("./" .. lib_name)
    end
    test.load(source_path)
 end

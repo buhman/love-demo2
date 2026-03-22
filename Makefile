@@ -96,7 +96,7 @@ pack_main: src/pack_main.o
 .SUFFIXES:
 .INTERMEDIATE:
 .SECONDARY:
-.PHONY: all clean phony
+.PHONY: all clean phony dist
 
 %: RCS/%,v
 %: RCS/%

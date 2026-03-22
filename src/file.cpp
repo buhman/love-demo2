@@ -21,6 +21,8 @@ namespace file {
 
   void const * read_file(const char * r_filename, int * out_size)
   {
+    fprintf(stderr, "(pack) filename: %s\n", r_filename);
+    
     pack::header const * header = (pack::header const *)&_binary_test_pack_start[0];
     assert(header->magic == pack::magic_value);
     ptrdiff_t data = (ptrdiff_t)&_binary_test_pack_start[header->header_size];
