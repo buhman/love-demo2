@@ -14,6 +14,7 @@ CFLAGS += -fpic
 CFLAGS += -I./include
 CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unused-but-set-variable
 CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
+CFLAGS += -Wno-error=unused-function
 CFLAGS += -fno-strict-aliasing
 ifdef READ_PACK_FILE
 CFLAGS += -DREAD_PACK_FILE

@@ -2,11 +2,15 @@
 #include <string.h>
 
 #include "directxmath/directxmath.h"
+#include "glad/gl.h"
 
 #include "font/bitmap.h"
+#include "font/outline.h"
 #include "view.h"
+#include "window.h"
 
 extern font::bitmap::font * terminus_fonts;
+extern font::outline::font * uncial_antiqua_fonts;
 extern unsigned int empty_vertex_array_object;
 extern unsigned int quad_index_buffer;
 
@@ -80,6 +84,8 @@ namespace hud {
     return y + font.desc->glyph_height;
   }
 
+  static int frame = 0;
+
   void draw()
   {
     static char buf[512];
@@ -90,14 +96,41 @@ namespace hud {
     font::bitmap::font const& ter_best = terminus_fonts[font_ix];
     font::bitmap::draw_start(ter_best, empty_vertex_array_object, quad_index_buffer);
 
-    y = draw_label<float>(ter_best, buf, 10, y, "fov: ", "%.3f", view::state.fov);
-    y = draw_label<int>(ter_best, buf, 10, y, "font_height: ", "%d", ter_best.desc->glyph_height);
+    //y = draw_label<float>(ter_best, buf, 10, y, "fov: ", "%.3f", view::state.fov);
+    //y = draw_label<int>(ter_best, buf, 10, y, "font_height: ", "%d", ter_best.desc->glyph_height);
+
+    font::bitmap::draw_string(ter_best, "keyboard:", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  move: w/a/s/d", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  look: up/down/left/right", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  elevate: q/e", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "gamepad:", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  move: right stick", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  look: left stick", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  elevate: trigger left/right", 10, y); y += ter_best.desc->glyph_height;
+
+    if (frame++ > 60 * 10)
+      return;
+
+    font::outline::draw_start(uncial_antiqua_fonts[0], empty_vertex_array_object, quad_index_buffer);
+    char const * title = "Technical demo: Bibliotheca";
+    int const title_length = strlen(title);
+    int title_width = 563;
+    int title_height = 31;
+    int title_x = (window::width - title_width) / 2.0;
+    int title_y = (window::height - title_height) / 2.0;
+
+    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    font::outline::draw_string(uncial_antiqua_fonts[0], title, title_x + 3, title_y + 3);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    font::outline::draw_string(uncial_antiqua_fonts[0], title, title_x + 0, title_y + 0);
 
     /*
     y = draw_label<float>(ter_best, buf, 10, y, "lighting.quadratic: ", "%.2f", lighting.quadratic);
     y = draw_label<float>(ter_best, buf, 10, y, "lighting.linear: ", "%.2f", lighting.linear);
     */
 
+    /*
     y = draw_vector(ter_best, buf, y, "eye", XMVectorSetW(view::state.eye, 0));
     y = draw_vector(ter_best, buf, y, "at", XMVectorSetW(view::state.at, 0));
     y = draw_vector(ter_best, buf, y, "forward", XMVectorSetW(view::state.forward, 0));
@@ -105,10 +138,10 @@ namespace hud {
     y = draw_label<float>(ter_best, buf, 10, y, "pitch: ", "%.4f", view::state.pitch);
     y = draw_label<float>(ter_best, buf, 10, y, "frame_rate_avg: ", "%.2f", 1.0f / update_average(current_time - last_frame_time));
 
-    font::bitmap::draw_string(ter_best, "mouse:", 10, y);
-    y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "mouse:", 10, y); y += ter_best.desc->glyph_height;
 
     y = draw_vector(ter_best, buf, y, "  position", XMLoadFloat4((XMFLOAT4*)mouse_position));
     y = draw_vector(ter_best, buf, y, "     block", XMLoadFloat4((XMFLOAT4*)mouse_block));
+    */
   }
 }
