@@ -1,11 +1,17 @@
 local ffi = require 'ffi'
 local joysticks
 
-function init()
-   joysticks = love.joystick.getJoysticks()
-   for i, joystick in ipairs(joysticks) do
-      print(i, joystick:getName())
+function init_joysticks()
+   joysticks = {}
+   for i, joystick in ipairs(love.joystick.getJoysticks()) do
+      if joystick:isGamepad() then
+         table.insert(joysticks, joystick)
+         print(#joysticks, joystick:getName())
+      end
    end
+end
+
+function init()
 
    ffi.cdef[[
 void load(const char * source_path);
@@ -229,6 +235,9 @@ function love.run()
    return function()
       love.event.pump()
       for name, a,b,c,d,e,f,g,h in love.event.poll() do
+         if name == "joystickadded" or name == "joystickremoved" then
+            init_joysticks()
+         end
          if name == "quit" then
             if c or not love.quit or not love.quit() then
                return a or 0, b
