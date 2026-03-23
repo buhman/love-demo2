@@ -125,9 +125,13 @@ def build_block_instances(blocks):
     light_sources = []
 
     for position, block_id, block_data, normal_indices in blocks:
+        if block_id == 44:
+            print("bd", block_data)
         if block_ids.is_light_source(block_id, block_data):
             light_sources.append((position, block_id, block_data))
         if not block_ids.is_cube_block(block_id, block_data):
+            if block_id == 44:
+                print(block_id)
             custom_mesh_index = block_ids.get_custom_mesh_index(block_id, block_data)
             non_cube_blocks[custom_mesh_index].append((position, block_id, block_data))
             continue

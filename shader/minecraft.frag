@@ -41,5 +41,6 @@ void main()
   Position = fs_in.Position.xzy;
   Normal = vec4(normalize(fs_in.Normal.xzy), two_sided);
   Color = texture_color.xyz;
+  //Color = vec3(normalize(fs_in.Normal.xzy));
   Block = vec4(fs_in.BlockID, fs_in.Data, fs_in.TextureID, fs_in.Special);
 }

@@ -85,9 +85,11 @@ def get_special(block_id, block_data):
         return 1
     if "stair_oriented" in decl.properties:
         return 2
+    if "slab_oriented" in decl.properties:
+        return 3
     return 0
 
 if __name__ == "__main__":
     from pprint import pprint
-    #print(sorted_custom_mesh)
-    pprint(sorted_decls)
+    print(sorted_custom_mesh)
+    #pprint(sorted_decls)

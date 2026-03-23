@@ -17,4 +17,4 @@ def write_obj(vertex_buffer, index_buffer, index_lookup, path):
     state = obj.parse_obj_from_filename(path)
     obj_state.append_triangles(state, vertex_buffer, index_buffer, index_lookup)
     index_count = len(index_buffer) - index_start
-    print(f"{index_start}, {index_count}, // {path}")
+    print(f"{{{index_start}, {index_count}}}, // {path}")

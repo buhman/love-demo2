@@ -16,7 +16,8 @@ struct {
   {1152, 3180}, // candle.obj
   {4332, 1584}, // custom_mushroom.obj
   {5916, 36}, // fence.obj
-  {5952, 24}, // stair.obj
-  {5976, 12}, // tall_grass.obj
-  {5988, 2082}, // wall_torch.obj
+  {5952, 24}, // slab.obj
+  {5976, 24}, // stair.obj
+  {6000, 12}, // tall_grass.obj
+  {6012, 2082}, // wall_torch.obj
 };
