@@ -13,7 +13,8 @@ extern "C" {
   EXPORT void DECL update_keyboard(int up, int down, int left, int right,
 				   int w, int s, int a, int d,
 				   int t, int g, int f, int h,
-				   int i, int k, int j, int l);
+				   int i, int k, int j, int l,
+                                   int q, int e);
   EXPORT void DECL update_mouse(int x, int y);
   EXPORT void DECL update_joystick(int joystick_index,
 				   float lx, float ly, float rx, float ry, float tl, float tr,

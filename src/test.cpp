@@ -215,26 +215,6 @@ void load(const char * source_path)
   flame::load_texture();
 }
 
-void update_keyboard(int up, int down, int left, int right,
-                     int w, int s, int a, int d,
-                     int t, int g, int f, int h,
-                     int i, int k, int j, int l)
-{
-  //float forward = (0.1f * up + -0.1f * down);
-  //float strafe = (-0.1f * left + 0.1f * right);
-  //view::third_person::apply_translation(forward, strafe, 0);
-  /*
-  collision_scene::update(up, down, left, right,
-                          w, s, a, d,
-                          t, g, f, h,
-                          i, k, j, l);
-  */
-  boids_scene::update(up, down, left, right,
-                      w, s, a, d,
-                      t, g, f, h,
-                      i, k, j, l);
-}
-
 void check_collisions(collision::Sphere const & sphere, XMVECTOR const & direction,
                       collision::state & state)
 {
@@ -310,6 +290,43 @@ void minecraft_view_update(XMVECTOR direction)
     view::state.at = sphere.center + direction;
   }
   view::state.eye = view::state.at - view::state.direction * view::at_distance;
+}
+
+void update_keyboard(int up, int down, int left, int right,
+                     int w, int s, int a, int d,
+                     int t, int g, int f, int h,
+                     int i, int k, int j, int l,
+                     int q, int e)
+{
+  //float forward = (0.1f * up + -0.1f * down);
+  //float strafe = (-0.1f * left + 0.1f * right);
+  //view::third_person::apply_translation(forward, strafe, 0);
+  /*
+  collision_scene::update(up, down, left, right,
+                          w, s, a, d,
+                          t, g, f, h,
+                          i, k, j, l);
+  */
+  /*
+  boids_scene::update(up, down, left, right,
+                      w, s, a, d,
+                      t, g, f, h,
+                      i, k, j, l);
+  */
+
+  float forward = (w - s) * 0.5;
+  float strafe = (d - a) * 0.5;
+  float elevation = (q - e) * 0.5;
+  float delta_yaw = (left - right) * -0.035;
+  float delta_pitch = (down - up) * -0.035;
+
+  XMVECTOR direction = view::third_person::apply_transform(forward, strafe, elevation,
+                                                           delta_yaw, delta_pitch);
+  view::apply_fov(0.01 * up + -0.01 * down);
+
+  if (true) {
+    minecraft_view_update(direction);
+  }
 }
 
 void update_joystick(int joystick_index,
