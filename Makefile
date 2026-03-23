@@ -73,8 +73,9 @@ all: test.so
 %.o: %.cpp
 	$(CXX) $(ARCH) $(CXXSTD) $(CFLAGS) $(OPT) -c $< -o $@
 
-test.pack: pack_main
-	./pack_main $@ $(shell cat filenames.txt)
+PACK_FILENAMES = $(shell cat filenames.txt)
+test.pack: pack_main $(PACK_FILENAMES)
+	./pack_main $@ $(PACK_FILENAMES)
 
 test.pack.o: test.pack
 	$(OBJCOPY) -I binary -O $(OBJARCH) $< $@

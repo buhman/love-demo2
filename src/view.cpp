@@ -105,11 +105,10 @@ namespace view {
 
     // position
     // grandlecturn
-    //state.eye = XMVectorSet(4.71f, 65.30, 57.92, 1);
+    state.eye = XMVectorSet(4.71f, 65.30, 57.92, 1);
 
     // midnightmeadow
-    state.eye = XMVectorSet(13.71f, -3.36, 90.92, 1);
-
+    //state.eye = XMVectorSet(13.71f, -3.36, 90.92, 1);
     state.at = state.eye + state.direction * at_distance;
     //state.at = XMVectorSet(0, 0, 0, 1);
     //state.eye = XMVectorSet(0, -100, 0, 1);

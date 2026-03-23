@@ -45,8 +45,7 @@ namespace minecraft {
 
   static unsigned int texture;
 
-  static const int max_world_count = 10;
-  static world::state world_state[max_world_count];
+  world::state world_state[max_world_count];
   world::state * current_world;
 
   void load_program()
@@ -272,7 +271,7 @@ namespace minecraft {
     for (int i = 0; i < world::descriptors_length; i++) {
       per_world::load_world(&world::descriptors[i], world_state[i]);
     }
-    current_world = &world_state[world::world_id::MIDNIGHTMEADOW];
+    current_world = &world_state[world::world_id::GRANDLECTURN];
   }
 
   static inline int popcount(int x)

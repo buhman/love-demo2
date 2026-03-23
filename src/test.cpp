@@ -292,6 +292,29 @@ void minecraft_view_update(XMVECTOR direction)
   view::state.eye = view::state.at - view::state.direction * view::at_distance;
 }
 
+static int world_id = 0;
+
+void next_world()
+{
+  world_id += 1;
+  if (world_id == 2)
+    world_id = 0;
+
+  if (world_id == 0) {
+    view::state.eye = XMVectorSet(4.71f, 65.30, 57.92, 1);
+  } else {
+    // midnightmeadow
+    view::state.eye = XMVectorSet(13.71f, -3.36, 92.92, 1);
+  }
+  view::state.at = view::state.eye + view::state.direction * view::at_distance;
+
+  minecraft::current_world = &minecraft::world_state[world_id];
+
+  printf("next world\n");
+}
+
+static int last_l = 0;
+
 void update_keyboard(int up, int down, int left, int right,
                      int w, int s, int a, int d,
                      int t, int g, int f, int h,
@@ -327,7 +350,14 @@ void update_keyboard(int up, int down, int left, int right,
   if (true) {
     minecraft_view_update(direction);
   }
+
+  if (l && last_l == 0) {
+    next_world();
+  }
+  last_l = l;
 }
+
+static int last_a = 0;
 
 void update_joystick(int joystick_index,
                      float lx, float ly, float rx, float ry, float tl, float tr,
@@ -349,6 +379,11 @@ void update_joystick(int joystick_index,
   if (true) {
     minecraft_view_update(direction);
   }
+
+  if (a && last_a == 0) {
+    next_world();
+  }
+  last_a = a;
 
   //view::state.eye = view::state.eye + direction;
   //view::state.at = view::state.at - view::state.direction * view::at_distance;

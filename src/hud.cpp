@@ -103,10 +103,11 @@ namespace hud {
     font::bitmap::draw_string(ter_best, "  move: w/a/s/d", 10, y); y += ter_best.desc->glyph_height;
     font::bitmap::draw_string(ter_best, "  look: up/down/left/right", 10, y); y += ter_best.desc->glyph_height;
     font::bitmap::draw_string(ter_best, "  elevate: q/e", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  warp: l", 10, y); y += ter_best.desc->glyph_height;
     font::bitmap::draw_string(ter_best, "gamepad:", 10, y); y += ter_best.desc->glyph_height;
     font::bitmap::draw_string(ter_best, "  move: right stick", 10, y); y += ter_best.desc->glyph_height;
     font::bitmap::draw_string(ter_best, "  look: left stick", 10, y); y += ter_best.desc->glyph_height;
-    font::bitmap::draw_string(ter_best, "  elevate: trigger left/right", 10, y); y += ter_best.desc->glyph_height;
+    font::bitmap::draw_string(ter_best, "  warp: a", 10, y); y += ter_best.desc->glyph_height;
 
     if (frame++ > 60 * 10)
       return;

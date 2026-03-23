@@ -26,7 +26,7 @@ void main()
 
   vec3 out_color = color.xyz * 0.1;
 
-  if (false) {
+  if (LightCount != 0) {
     for (int i = 0; i < LightCount; i++) {
       vec3 light_position = light[i].xzy + vec3(0, 0, 0.5);
       float light_distance = length(light_position - position.xyz);
