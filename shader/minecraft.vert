@@ -45,6 +45,12 @@ vec3 orientation(vec3 position)
     } else {
       return position;
     }
+  } else if (Special == 3) {
+    if (BlockPosition.x == -70) {
+      return vec3(position.z, position.y, -position.x);
+    } else {
+      return position;
+    }
   } else {
     return position;
   }
