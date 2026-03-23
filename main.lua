@@ -1,5 +1,5 @@
 local ffi = require 'ffi'
-local joysticks
+local joysticks = {}
 
 function init_joysticks()
    joysticks = {}

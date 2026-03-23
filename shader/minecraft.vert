@@ -35,6 +35,16 @@ vec3 orientation(vec3 position)
       return vec3(position.x, position.y, -position.z);
     else // "facing south"
       return position;
+  } else if (Special == 2) { // oriented stair
+    if (Data == 0) {
+      return vec3(-position.x, position.y, position.z);
+    } else if (Data == 2) { //
+      return vec3(position.z, position.y, -position.x);
+    } else if (Data == 3) { //
+      return vec3(-position.z, position.y, position.x);
+    } else {
+      return position;
+    }
   } else {
     return position;
   }
