@@ -5,16 +5,18 @@ OBJCOPY=$(PREFIX)objcopy
 
 OBJARCH = elf64-x86-64
 
-OPT = -O0 -march=x86-64-v3
+OPT = -O2 -march=x86-64-v3
+
+#DEBUG = -g
 
 CSTD = -std=gnu23
 CXXSTD = -std=gnu++23
-CFLAGS += -g
 CFLAGS += -fpic
 CFLAGS += -I./include
 CFLAGS += -Wall -Werror -Wfatal-errors -Wno-error=unused-variable -Wno-error=unused-but-set-variable
 CFLAGS += -Wno-error=unknown-pragmas -Wno-unknown-pragmas
 CFLAGS += -Wno-error=unused-function
+CFLAGS += -Wno-error=array-bounds
 CFLAGS += -fno-strict-aliasing
 ifdef READ_PACK_FILE
 CFLAGS += -DREAD_PACK_FILE
@@ -68,10 +70,10 @@ endif
 all: test.so
 
 %.o: %.c
-	$(CC) $(ARCH) $(CSTD) $(CFLAGS) $(OPT) -c $< -o $@
+	$(CC) $(ARCH) $(CSTD) $(CFLAGS) $(OPT) $(DEBUG) -c $< -o $@
 
 %.o: %.cpp
-	$(CXX) $(ARCH) $(CXXSTD) $(CFLAGS) $(OPT) -c $< -o $@
+	$(CXX) $(ARCH) $(CXXSTD) $(CFLAGS) $(OPT) $(DEBUG) -c $< -o $@
 
 PACK_FILENAMES = $(shell cat filenames.txt)
 test.pack: pack_main $(PACK_FILENAMES)
@@ -81,13 +83,13 @@ test.pack.o: test.pack
 	$(OBJCOPY) -I binary -O $(OBJARCH) $< $@
 
 test.so: $(OBJS)
-	$(CC) $(ARCH) $(OPT) -Wl,-z noexecstack -shared -g $^ -o $@ -lSDL3
+	$(CC) $(ARCH) $(OPT) -Wl,-z noexecstack -shared $(DEBUG) $^ -o $@ -lSDL3
 
 test.dll: $(OBJS)
-	$(CXX) $(ARCH) $(OPT) -mthreads -static -mdll -static-libstdc++ -static-libgcc -g $^ -o $@ -L. -lSDL3 $(WINDOWS)
+	$(CXX) $(ARCH) $(OPT) -mthreads -static -mdll -static-libstdc++ -static-libgcc $(DEBUG) $^ -o $@ -L. -lSDL3 $(WINDOWS)
 
 main: $(OBJS) src/main.o
-	$(CC) $(ARCH) $(LDFLAGS) $(OPT) -g $^ -o $@
+	$(CC) $(ARCH) $(LDFLAGS) $(OPT) $(DEBUG) $^ -o $@
 
 clean:
 	find . -type f ! -name "*.*" -delete
