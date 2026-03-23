@@ -40,13 +40,10 @@ void update(float time);
    local platform = love.system.getOS()
 
    local lib_name
-   local love_name
    if platform == "Linux" then
       lib_name = "test.so"
-      love_name = "love"
    elseif platform == "Windows" then
       lib_name = "test.dll"
-      love_name = "LOVE"
    else
       assert(false, "unsupported platform " .. platform)
    end
@@ -56,14 +53,19 @@ void update(float time);
          local archive = love.filesystem.getSourceBaseDirectory()
       end
 
+      -- there is nothing wrong with the following 5 lines from an API
+      -- design/usability perspective
+      local identity = love.filesystem.getIdentity()
+      local non_existing_identity = "https://github.com/love2d/love/issues/2295"
+      love.filesystem.setIdentity(non_existing_identity:gsub("/", "_"))
       local contents, size = love.filesystem.read("data", lib_name)
+      love.filesystem.setIdentity(identity)
+
       assert(contents ~= nil, size)
       local write_success, message = love.filesystem.write(lib_name, contents, size)
       assert(write_success, lib_name, message)
-      local app_data = love.filesystem.getAppdataDirectory()
-      -- the love2d "filesystem" API is the worst possible design in the
-      -- entire history of computing
-      test = ffi.load(app_data .. "/" .. love_name .. "/love-demo2/" .. lib_name)
+      local lib_directory = love.filesystem.getRealDirectory(lib_name)
+      test = ffi.load(lib_directory .. "/" .. lib_name)
    else
       test = ffi.load("./" .. lib_name)
    end
