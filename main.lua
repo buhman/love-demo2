@@ -70,6 +70,10 @@ void update(float time);
       test = ffi.load("./" .. lib_name)
    end
    test.load(source_path)
+
+   local bgm = love.audio.newSource("Suite.mp3", "stream")
+   bgm:setLooping(true)
+   bgm:play()
 end
 
 local update = function(time)
